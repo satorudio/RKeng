@@ -1,0 +1,27 @@
+# Игнорируем исходники Jolt, но оставляем заголовочные файлы и скомпиленные либы
+lib/JoltPhysics/**/*
+!lib/JoltPhysics/**/*.h
+!lib/JoltPhysics/**/*.hpp
+!lib/JoltPhysics/**/*.lib
+!lib/JoltPhysics/**/*.dll
+!lib/JoltPhysics/**/*.a
+!lib/JoltPhysics/**/*.so
+
+# Игнорируем папки сборки самого движка RKeng
+build/
+.ninja_deps
+.ninja_log
+CMakeCache.txt
+CMakeFiles/
+
+# Временный мусор IDE и редакторов
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Бинарники и логи твоего билда
+*.exe
+*.dll
+*.pdb
+*.log
