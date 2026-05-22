@@ -175,7 +175,7 @@ namespace RKeng::PhysicsTick
                     p.GetX(), p.GetY(), p.GetZ());
                 Logger::Trace(buf);
             } else {
-                Logger::Warn("    character is NULL before Update!");
+                Logger::Trace("    character is NULL (no player scene)");
             }
 
             {

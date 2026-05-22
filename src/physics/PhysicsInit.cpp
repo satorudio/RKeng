@@ -21,19 +21,8 @@ static void JoltTraceImpl(const char* fmt, ...)
     RKeng::Logger::Info(std::string("[Jolt] ") + buf);
 }
 
-// ---- Обязательный обработчик ассертов Jolt ----
-static bool JoltAssertFailedImpl(const char* inExpression, const char* inMessage,
-                                  const char* inFile, JPH::uint inLine)
-{
-    char buf[1024];
-    snprintf(buf, sizeof(buf), "JOLT ASSERT FAILED: %s | %s | %s:%u",
-             inExpression, inMessage ? inMessage : "", inFile, inLine);
-    RKeng::Logger::Warn(buf);
-    return false;
-}
-
-// Определяем глобальный указатель, который Jolt объявляет как extern
-namespace JPH { bool (*AssertFailed)(const char*, const char*, const char*, uint) = JoltAssertFailedImpl; }
+// JPH::AssertFailed определяется самим Jolt (IssueReporting.cpp) начиная с v5.
+// Не переопределяем — иначе multiple definition при линковке.
 
 
 class RKBPLayerInterface final : public JPH::BroadPhaseLayerInterface

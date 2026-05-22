@@ -53,23 +53,34 @@ set(JOLT_LIB ${JOLT_DIR}/libJolt.a)
 
 if(EXISTS ${JOLT_LIB})
     message(STATUS "[RKeng] Jolt: используем precompiled ${JOLT_LIB}")
+    # Те же defines что и при сборке из исходников — ABI должен совпадать
+    set(JPH_OBJECT_LAYER_BITS 16 CACHE STRING "" FORCE)
+    set(JPH_ENABLE_ASSERTS OFF CACHE BOOL "" FORCE)
     add_library(Jolt STATIC IMPORTED GLOBAL)
     set_target_properties(Jolt PROPERTIES
         IMPORTED_LOCATION ${JOLT_LIB}
         INTERFACE_INCLUDE_DIRECTORIES "${JOLT_DIR};${JOLT_DIR}/.."
+        INTERFACE_COMPILE_DEFINITIONS "JPH_OBJECT_LAYER_BITS=16"
     )
+    set(JOLT_AVAILABLE TRUE)
+elseif(EXISTS ${JOLT_DIR}/Build/CMakeLists.txt)
+    message(STATUS "[RKeng] Jolt: собираем из исходников ${JOLT_DIR}/Build")
+    set(JPH_OBJECT_LAYER_BITS 16 CACHE STRING "" FORCE)
+    set(JPH_ENABLE_ASSERTS OFF CACHE BOOL "" FORCE)
+    set(JPH_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+    set(JPH_BUILD_SAMPLES  OFF CACHE BOOL "" FORCE)
+    set(JPH_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+    add_subdirectory(${JOLT_DIR}/Build ${CMAKE_BINARY_DIR}/Jolt)
     set(JOLT_AVAILABLE TRUE)
 elseif(EXISTS ${JOLT_DIR}/CMakeLists.txt)
     message(STATUS "[RKeng] Jolt: собираем из исходников ${JOLT_DIR}")
+    set(JPH_OBJECT_LAYER_BITS 16 CACHE STRING "" FORCE)
     set(JPH_ENABLE_ASSERTS OFF CACHE BOOL "" FORCE)
     set(JPH_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
     set(JPH_BUILD_SAMPLES  OFF CACHE BOOL "" FORCE)
     set(JPH_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
     add_subdirectory(${JOLT_DIR} ${CMAKE_BINARY_DIR}/Jolt)
     set(JOLT_AVAILABLE TRUE)
-    set_target_properties(Jolt PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${JOLT_DIR};${JOLT_DIR}/.."
-    )
 else()
     set(JOLT_AVAILABLE FALSE)
     message(WARNING "[RKeng] Jolt не найден — физика отключена")
@@ -262,6 +273,9 @@ endif()
 add_executable(RKeng ${SRC_DIR}/main.cpp)
 
 target_link_libraries(RKeng PRIVATE RKengCore)
+if(WIN32)
+    target_link_libraries(RKeng PRIVATE dbghelp)
+endif()
 
 target_include_directories(RKeng PRIVATE
     ${SRC_DIR}

@@ -10,6 +10,9 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Core/Factory.h>
+#include <Jolt/Core/Memory.h>
+#include <Jolt/Core/IssueReporting.h>
 #include <cmath>
 #endif
 
@@ -128,6 +131,16 @@ namespace RKeng::EngineAPI_Impl
         api.SpawnDynamicBox   = SpawnDynamicBox;
         api.DestroyBody       = DestroyBody;
         api.engineVersion     = 2;
+        // ── Jolt синглтоны для InitJoltFromEngine() в DLL ────────────────
+#ifdef RK_JOLT_ENABLED
+        api.joltAllocate   = reinterpret_cast<void*>(JPH::Allocate);
+        api.joltFree       = reinterpret_cast<void*>(JPH::Free);
+        api.joltReallocate = reinterpret_cast<void*>(JPH::Reallocate);
+        api.joltAllocate16 = reinterpret_cast<void*>(JPH::AlignedAllocate);
+        api.joltFree16     = reinterpret_cast<void*>(JPH::AlignedFree);
+        api.joltFactory    = reinterpret_cast<void*>(JPH::Factory::sInstance);
+        api.joltAssertFn   = reinterpret_cast<void*>(JPH::AssertFailed);
+#endif
         return api;
     }
 }

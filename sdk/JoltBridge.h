@@ -47,6 +47,12 @@ namespace RKeng
     // Вызывай один раз — в самом начале OnLoad(), до любого кода Jolt.
     inline void InitJoltFromEngine(const EngineAPI& api)
     {
+        // ── Assert handler — ПЕРВЫМ, до любых других вызовов Jolt ───────
+        // Если поставить последним, assert внутри самого InitJoltFromEngine
+        // (например, при нулевом Factory) уйдёт в дефолтный __debugbreak().
+        if (api.joltAssertFn)
+            JPH::AssertFailed = reinterpret_cast<decltype(JPH::AssertFailed)>(api.joltAssertFn);
+
         // ── Аллокаторы ───────────────────────────────────────────────────
         // Без них первый же JPH::Allocate() → nullptr → 0xc0000005
         if (api.joltAllocate)
@@ -64,11 +70,6 @@ namespace RKeng
         // Нужна для BoxShapeSettings::Create() и вообще любой Shape.
         if (api.joltFactory)
             JPH::Factory::sInstance = reinterpret_cast<JPH::Factory*>(api.joltFactory);
-
-        // ── Assert handler ───────────────────────────────────────────────
-        // Опционально, но без него Jolt-ассерты молча падают.
-        if (api.joltAssertFn)
-            JPH::AssertFailed = reinterpret_cast<decltype(JPH::AssertFailed)>(api.joltAssertFn);
     }
 
 } // namespace RKeng

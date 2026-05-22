@@ -1,8 +1,10 @@
 import os
+import sys
 
 # Настройки
 TARGET_EXTS = ('.txt', '.cpp', '.h', '.hpp')
-IGNORE_DIR = 'build'
+# Папки, в которые скрипту вообще не нужно совать свой нос
+IGNORE_DIRS = ('build', '.git', '.vscode', '.vs') 
 LIB_DIR = 'lib'
 OUTPUT_FILE = 'project_stats.txt'
 
@@ -15,8 +17,8 @@ def get_file_stats(filepath):
         return 0, 0
 
 def should_skip_dir(dir_name, current_dir, root_dir):
-    """Проверяет, нужно ли вообще заходить в эту папку"""
-    if dir_name == IGNORE_DIR:
+    """Проверяет, нужно ли пропускать папку"""
+    if dir_name in IGNORE_DIRS:
         return True
         
     full_path = os.path.join(current_dir, dir_name)
@@ -26,7 +28,7 @@ def should_skip_dir(dir_name, current_dir, root_dir):
     # Если мы внутри папки lib, проверяем уровень вложенности
     if LIB_DIR in parts:
         lib_index = parts.index(LIB_DIR)
-        # Если ушли глубже чем на 1 уровень от самой lib (например lib/foo/bar)
+        # Если ушли глубже чем на 1 уровень от самой lib (например, lib/foo/bar)
         if len(parts) - 1 > lib_index + 1:
             return True
             
@@ -36,7 +38,6 @@ def build_tree(current_dir, root_dir, prefix=""):
     """Рекурсивно строит красивое дерево проекта"""
     lines = []
     
-    # Получаем список всего внутри текущей папки
     try:
         items = os.listdir(current_dir)
     except Exception:
@@ -48,7 +49,6 @@ def build_tree(current_dir, root_dir, prefix=""):
     files = [f for f in items if os.path.isfile(os.path.join(current_dir, f)) 
              and f.endswith(TARGET_EXTS)]
     
-    # Сортируем для красоты: сначала папки, потом файлы
     dirs.sort()
     files.sort()
     
@@ -56,13 +56,11 @@ def build_tree(current_dir, root_dir, prefix=""):
     count = len(all_mapped)
     
     for index, (item, is_dir) in enumerate(all_mapped):
-        # Определяем, последний ли это элемент в текущей папке (чтобы ветка красиво закрывалась)
         is_last = (index == count - 1)
         connector = "└── " if is_last else "├── "
         
         if is_dir:
             lines.append(f"{prefix}{connector}[DIR] {item}/")
-            # Для подпапок увеличиваем отступ веток
             next_prefix = prefix + ("    " if is_last else "│   ")
             lines.extend(build_tree(os.path.join(current_dir, item), root_dir, next_prefix))
         else:
@@ -72,16 +70,33 @@ def build_tree(current_dir, root_dir, prefix=""):
             
     return lines
 
-if __name__ == "__main__":
-    root = os.path.dirname(os.path.abspath(__file__))
+def main():
+    script_path = os.path.realpath(__file__)
+    root = os.path.dirname(script_path)
+    os.chdir(root)
+    
     project_name = os.path.basename(root)
     
-    # Генерируем дерево
+    print(f"Сканирую папку: {root} ...", flush=True)
+    
     tree_output = [f"[ROOT] {project_name}/"]
     tree_output.extend(build_tree(root, root))
     
-    # Записываем в файл
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
         f.write("\n".join(tree_output))
         
-    print(f"Готово! Дерево проекта сохранено в {OUTPUT_FILE}")
+    print(f"Готово! Дерево проекта сохранено в {OUTPUT_FILE}", flush=True)
+
+if __name__ == "__main__":
+    # Фикс кодировки винды для запуска дабл-кликом
+    if sys.platform == 'win32':
+        os.system('chcp 65001 > nul') 
+        
+    print("Старт скрипта...", flush=True)
+    
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print("\n!!! ПРОИЗОШЛА ОШИБКА ПРИ ВЫПОЛНЕНИИ !!!", flush=True)
+        traceback.print_exc()
