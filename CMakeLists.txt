@@ -270,7 +270,16 @@ endif()
 # ============================================================
 #  RKeng.exe — тонкий лончер, только загружает RKengCore.dll
 # ============================================================
-add_executable(RKeng ${SRC_DIR}/main.cpp)
+# WIN32 = SUBSYSTEM:WINDOWS. Adrenalin 26.x определяет "игру" именно по этому флагу.
+# Консольный вывод восстанавливается через AllocConsole() внутри WinMain.
+if(WIN32)
+    add_executable(RKeng WIN32
+        ${SRC_DIR}/main.cpp
+        ${CMAKE_SOURCE_DIR}/RKeng.rc   # встраивает RKeng.manifest в PE
+    )
+else()
+    add_executable(RKeng ${SRC_DIR}/main.cpp)
+endif()
 
 target_link_libraries(RKeng PRIVATE RKengCore)
 if(WIN32)

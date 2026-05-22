@@ -7,6 +7,27 @@ namespace RKeng::InputPoll
     static double s_LastMouseX = 0.0;
     static double s_LastMouseY = 0.0;
     static bool   s_FirstMouse = true;
+    static bool   s_Focused    = true;
+
+    static void FocusCallback(GLFWwindow* window, int focused)
+    {
+        s_Focused = (focused == GLFW_TRUE);
+        // Отпускаем курсор когда теряем фокус (оверлей, alt-tab и т.д.)
+        // Захватываем обратно при возврате фокуса.
+        // Без этого GLFW_CURSOR_DISABLED конфликтует с хуками Adrenalin overlay
+        // и вызывает дедлок при клике на окно после закрытия оверлея.
+        glfwSetInputMode(window, GLFW_CURSOR,
+                         focused ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        if (focused)
+            s_FirstMouse = true; // сбрасываем дельту — иначе прыжок камеры
+    }
+
+    void Init()
+    {
+        auto* handle = GetWindowState().handle;
+        if (!handle) return;
+        glfwSetWindowFocusCallback(handle, FocusCallback);
+    }
 
     void Run(InputState& input, bool& running)
     {

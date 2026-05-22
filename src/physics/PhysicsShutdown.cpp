@@ -4,6 +4,7 @@
 // Вот этой херни не хватало для полного счастья:
 #ifdef RK_JOLT_ENABLED
 #include <Jolt/Core/Factory.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 #endif
 
 namespace RKeng::PhysicsShutdown

@@ -1,10 +1,10 @@
 [ROOT] RKeng/
 ├── [DIR] engine_api/
-│   ├── EngineAPI.h (71 стр., 2574 симв.)
+│   ├── EngineAPI.h (72 стр., 2631 симв.)
 │   └── IScenePlugin.h (74 стр., 2481 симв.)
 ├── [DIR] engine_core/
 │   ├── CMakeLists.txt (306 стр., 10696 симв.)
-│   ├── EngineAPI_Impl.h (138 стр., 5218 симв.)
+│   ├── EngineAPI_Impl.h (151 стр., 5929 симв.)
 │   ├── EngineInit.cpp (70 стр., 2238 симв.)
 │   ├── EngineInit.h (7 стр., 254 симв.)
 │   ├── EngineShutdown.cpp (26 стр., 765 симв.)
@@ -37,9 +37,9 @@
 │   ├── CarMesh.h (8 стр., 148 симв.)
 │   ├── CarState.h (153 стр., 4927 симв.)
 │   ├── CarTick.h (13 стр., 375 симв.)
-│   ├── EngineAPI.h (71 стр., 2574 симв.)
+│   ├── EngineAPI.h (72 стр., 2631 симв.)
 │   ├── IScenePlugin.h (74 стр., 2481 симв.)
-│   ├── JoltBridge.h (76 стр., 3124 симв.)
+│   ├── JoltBridge.h (77 стр., 3214 симв.)
 │   ├── Logger.h (19 стр., 576 симв.)
 │   ├── MathTypes.h (23 стр., 737 симв.)
 │   ├── OpenCarWorld_OnLoad_example.cpp (77 стр., 2788 симв.)
@@ -83,7 +83,7 @@
 │   ├── [DIR] core/
 │   │   ├── Engine.cpp (22 стр., 333 симв.)
 │   │   ├── Engine.h (23 стр., 421 симв.)
-│   │   ├── EngineAPI_Impl.h (133 стр., 4926 симв.)
+│   │   ├── EngineAPI_Impl.h (146 стр., 5637 симв.)
 │   │   ├── EngineInit.cpp (112 стр., 3862 симв.)
 │   │   ├── EngineInit.h (8 стр., 153 симв.)
 │   │   ├── EngineLoop.cpp (29 стр., 845 симв.)
@@ -109,13 +109,13 @@
 │   │   ├── Transform.cpp (1 стр., 23 симв.)
 │   │   └── Transform.h (5 стр., 147 симв.)
 │   ├── [DIR] physics/
-│   │   ├── PhysicsInit.cpp (137 стр., 4662 симв.)
+│   │   ├── PhysicsInit.cpp (126 стр., 4207 симв.)
 │   │   ├── PhysicsInit.h (3 стр., 100 симв.)
 │   │   ├── PhysicsShutdown.cpp (28 стр., 598 симв.)
 │   │   ├── PhysicsShutdown.h (3 стр., 104 симв.)
 │   │   ├── PhysicsState.cpp (2 стр., 115 симв.)
 │   │   ├── PhysicsState.h (52 стр., 1700 симв.)
-│   │   ├── PhysicsTick.cpp (238 стр., 8803 симв.)
+│   │   ├── PhysicsTick.cpp (238 стр., 8807 симв.)
 │   │   ├── PhysicsTick.h (7 стр., 115 симв.)
 │   │   └── RKContactListener.h (47 стр., 1472 симв.)
 │   ├── [DIR] scene/
@@ -189,6 +189,5 @@
 │   │   ├── WindowDestroy.h (7 стр., 106 симв.)
 │   │   ├── WindowState.cpp (10 стр., 140 симв.)
 │   │   └── WindowState.h (17 стр., 313 симв.)
-│   └── main.cpp (42 стр., 921 симв.)
-├── 1.txt (415 стр., 8638 симв.)
-└── CMakeLists.txt (384 стр., 13206 симв.)
+│   └── main.cpp (66 стр., 1779 симв.)
+└── CMakeLists.txt (398 стр., 13944 симв.)

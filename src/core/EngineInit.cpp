@@ -4,6 +4,7 @@
 #include "../vulkan/VulkanContext.h"
 #include "../physics/PhysicsInit.h"
 #include "../physics/PhysicsState.h"
+#include "../input/InputPoll.h"
 #include "SceneState.h"
 #include "SceneRegistry.h"
 #include "ScenePluginLoader.h"
@@ -48,6 +49,7 @@ namespace RKeng::EngineInit
         win.height = 1080;
         WindowCreate::Run(win);
         GetSceneState().windowHandle = win.handle;
+        InputPoll::Init();  // регистрируем focus callback — до Vulkan init
         Logger::Info(">>> Step 1: Window OK");
 
         // ── Step 2: Physics ──────────────────────────────────────────────────

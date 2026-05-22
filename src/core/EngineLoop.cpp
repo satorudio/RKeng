@@ -10,19 +10,18 @@ namespace RKeng::EngineLoop
     void Run(bool& running)
     {
         Logger::Info("Engine loop started.");
-        FrameTick::ResetTimer();  // сбрасываем таймер прямо перед стартом цикла
+        FrameTick::ResetTimer();
 
         uint64_t frameNum = 0;
         while (running)
         {
+            Logger::SetFrame(frameNum);
+
             Logger::Trace("---- Frame " + std::to_string(frameNum) + " ----");
-            Logger::Trace("  PollEvents...");
             FrameTick::PollEvents(running);
-            Logger::Trace("  Update...");
-            FrameTick::Update();
-            Logger::Trace("  Render...");
+            FrameTick::Update(frameNum);
             FrameTick::Render();
-            Logger::Trace("  Frame " + std::to_string(frameNum) + " done");
+
             frameNum++;
         }
     }

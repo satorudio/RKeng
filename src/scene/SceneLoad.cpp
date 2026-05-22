@@ -39,12 +39,14 @@ namespace RKeng::SceneLoad
 
         // CharacterVirtual создаём ПОСЛЕ OptimizeBroadPhase
         Logger::Info("SceneLoad: creating CharacterVirtual...");
-        ph.characterSettings.mMaxSlopeAngle             = JPH::DegreesToRadians(45.0f);
-        ph.characterSettings.mMaxStrength               = 100.0f;
-        ph.characterSettings.mBackFaceMode              = JPH::EBackFaceMode::CollideWithBackFaces;
-        ph.characterSettings.mCharacterPadding          = 0.02f;
-        ph.characterSettings.mPenetrationRecoverySpeed  = 1.0f;
-        ph.characterSettings.mPredictiveContactDistance = 0.1f;
+        // characterSettings локально — не в PhysicsState (SDK-совместимость)
+        JPH::CharacterVirtualSettings characterSettings;
+        characterSettings.mMaxSlopeAngle             = JPH::DegreesToRadians(45.0f);
+        characterSettings.mMaxStrength               = 100.0f;
+        characterSettings.mBackFaceMode              = JPH::EBackFaceMode::CollideWithBackFaces;
+        characterSettings.mCharacterPadding          = 0.02f;
+        characterSettings.mPenetrationRecoverySpeed  = 1.0f;
+        characterSettings.mPredictiveContactDistance = 0.1f;
 
         // ИСПРАВЛЕНИЕ 1: создаём CapsuleShape через ShapeSettings, а не через new напрямую.
         // Параметры: half-height цилиндрической части = 0.9f, radius = 0.35f.
@@ -73,10 +75,10 @@ namespace RKeng::SceneLoad
             return;
         }
 
-        ph.characterSettings.mShape = rtsResult.Get();
+        characterSettings.mShape = rtsResult.Get();
 
         ph.character = std::make_unique<JPH::CharacterVirtual>(
-            &ph.characterSettings,
+            &characterSettings,
             JPH::RVec3(0.0f, 2.0f, 0.0f),
             JPH::Quat::sIdentity(),
             ph.physicsSystem.get());

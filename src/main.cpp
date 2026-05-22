@@ -6,6 +6,22 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+
+// WIN32 subsystem (нужен для Adrenalin/overlays): нет консоли по умолчанию.
+// AllocConsole открывает окно консоли вручную — логи остаются видны при разработке.
+// В Release можно убрать AllocConsole и логи пойдут только в файл.
+static void AttachConsoleOutput()
+{
+    if (!AllocConsole()) return;  // уже есть — ок
+    // Переподключаем stdout/stderr к новой консоли
+    FILE* fp = nullptr;
+    freopen_s(&fp, "CONOUT$", "w", stdout);
+    freopen_s(&fp, "CONOUT$", "w", stderr);
+    freopen_s(&fp, "CONIN$",  "r", stdin);
+    std::cout.clear(); std::cerr.clear(); std::cin.clear();
+}
 
 LONG WINAPI VehCrashHandler(EXCEPTION_POINTERS* ep)
 {
@@ -38,7 +54,7 @@ LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep)
 }
 #endif
 
-int main()
+static int RKengMain()
 {
 #ifdef _WIN32
     AddVectoredExceptionHandler(1, VehCrashHandler);
@@ -64,3 +80,19 @@ int main()
     }
     return 0;
 }
+
+#ifdef _WIN32
+// WIN32 subsystem: точка входа WinMain.
+// Adrenalin 26.x определяет "игру" по SUBSYSTEM:WINDOWS в PE-заголовке.
+// Консольный subsystem (int main) он игнорирует.
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+    AttachConsoleOutput();  // открываем консоль для логов при разработке
+    return RKengMain();
+}
+#else
+int main()
+{
+    return RKengMain();
+}
+#endif

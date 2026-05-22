@@ -6,6 +6,6 @@
 
 namespace RKeng::InputPoll
 {
-    // running → false если окно закрыли
+    void Init();  // вызвать один раз после создания окна — регистрирует focus callback
     void Run(InputState& input, bool& running);
 }

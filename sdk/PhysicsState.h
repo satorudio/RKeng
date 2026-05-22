@@ -6,10 +6,13 @@
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/Physics/Character/CharacterVirtual.h>
 #include "RKContactListener.h"
-#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+
+// CapsuleShape.h, RotatedTranslatedShape.h, CharacterVirtual.h включаются
+// только там где нужны (SceneLoad.cpp) — не здесь.
+// JPH_IMPLEMENT_RTTI_VIRTUAL из этих хедеров создаёт глобальные объекты,
+// что безопасно в exe/движке, но недопустимо в SDK-заголовке (DLL-плагин).
+namespace JPH { class CharacterVirtual; }
 
 namespace RKeng
 {
@@ -35,16 +38,16 @@ namespace RKeng
         std::unique_ptr<JPH::TempAllocatorImpl>    tempAllocator;
         std::unique_ptr<JPH::JobSystemThreadPool>  jobSystem;
         std::unique_ptr<JPH::PhysicsSystem>        physicsSystem;
-        std::unique_ptr<JPH::CharacterVirtual>     character;   // создаётся сценой после OptimizeBroadPhase
-        JPH::CharacterVirtualSettings              characterSettings;
+        // CharacterVirtual через unique_ptr — forward declaration достаточно.
+        // characterSettings перенесён в SceneLoad.cpp (движок) — в SDK не нужен.
+        std::unique_ptr<JPH::CharacterVirtual>     character;
         JPH::BodyInterface*                        bodyInterface = nullptr;
         std::unique_ptr<RKContactListener>         contactListener;
 #endif
         bool  initialized   = false;
 
-        // Фиксированный шаг физики
-        float fixedTimestep = 1.0f / 60.0f;
-        float accumulator   = 0.0f;
+        float fixedTimestep  = 1.0f / 60.0f;
+        float accumulator    = 0.0f;
         int   collisionSteps = 1;
     };
 

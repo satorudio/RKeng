@@ -8,8 +8,8 @@
 #include <iomanip>
 #include <ctime>
 #include <mutex>
+#include <atomic>
 
-// ── ANSI colour codes ─────────────────────────────────────────────────────
 #define COL_RESET    "\033[0m"
 #define COL_GREY     "\033[90m"
 #define COL_CYAN     "\033[96m"
@@ -23,7 +23,8 @@
 
 namespace
 {
-    static std::mutex s_logMutex;
+    static std::mutex      s_logMutex;
+    static std::atomic<uint64_t> s_frame{0};
 }
 
 namespace RKeng::Logger
@@ -31,9 +32,9 @@ namespace RKeng::Logger
     static std::string Timestamp()
     {
         using namespace std::chrono;
-        auto now  = system_clock::now();
-        auto ms   = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
-        auto t    = system_clock::to_time_t(now);
+        auto now = system_clock::now();
+        auto ms  = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+        auto t   = system_clock::to_time_t(now);
         std::tm bt{};
 #ifdef _WIN32
         localtime_s(&bt, &t);
@@ -51,12 +52,15 @@ namespace RKeng::Logger
         return oss.str();
     }
 
+    void SetFrame(uint64_t frame) { s_frame.store(frame, std::memory_order_relaxed); }
+    uint64_t GetFrame()           { return s_frame.load(std::memory_order_relaxed); }
+
+    static bool Verbose() { return s_frame.load(std::memory_order_relaxed) < VERBOSE_FRAMES; }
+
     void Init()
     {
         std::lock_guard<std::mutex> lock(s_logMutex);
 #ifdef _WIN32
-        // Включаем ANSI escape codes в cmd.exe / PowerShell
-
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
         DWORD mode = 0;
@@ -80,9 +84,18 @@ namespace RKeng::Logger
 
     void Info(std::string_view msg)
     {
+        if (!Verbose()) return;
         std::lock_guard<std::mutex> lock(s_logMutex);
         std::cout << Timestamp()
                   << COL_GREEN << "[INFO] " << COL_RESET
+                  << msg << '\n' << std::flush;
+    }
+
+    void Always(std::string_view msg)
+    {
+        std::lock_guard<std::mutex> lock(s_logMutex);
+        std::cout << Timestamp()
+                  << COL_CYAN << "[STAT] " << COL_RESET
                   << msg << '\n' << std::flush;
     }
 
@@ -116,6 +129,7 @@ namespace RKeng::Logger
     void Debug(std::string_view msg)
     {
 #ifdef RK_DEBUG
+        if (!Verbose()) return;
         std::lock_guard<std::mutex> lock(s_logMutex);
         std::cout << Timestamp()
                   << COL_GREY << "[DEBUG] " << msg << COL_RESET
@@ -128,6 +142,7 @@ namespace RKeng::Logger
     void Trace(std::string_view msg)
     {
 #ifdef RK_DEBUG
+        if (!Verbose()) return;
         std::lock_guard<std::mutex> lock(s_logMutex);
         std::cout << Timestamp()
                   << COL_GREY << "[TRACE] " << msg << COL_RESET
@@ -137,15 +152,11 @@ namespace RKeng::Logger
 #endif
     }
 
-    // Диагностика указателей — всегда активна (не только в DEBUG).
-    // Формат:  [PTR]  JPH::Allocate        = 0x00007ff84a3c1020  OK
-    //          [PTR]  JPH::Factory::sInst  = 0x0000000000000000  <<< NULL !!!
     void Ptr(std::string_view name, const void* ptr)
     {
         std::ostringstream oss;
         oss << std::hex << std::uppercase << std::setfill('0')
             << "0x" << std::setw(16) << reinterpret_cast<uintptr_t>(ptr);
-
         const bool null = (ptr == nullptr);
         std::lock_guard<std::mutex> lock(s_logMutex);
         std::cout << Timestamp()

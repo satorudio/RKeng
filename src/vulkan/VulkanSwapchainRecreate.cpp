@@ -117,9 +117,23 @@ namespace RKeng::VulkanSwapchainRecreate
 
         ci.preTransform   = caps.currentTransform;
         ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        ci.presentMode    = VK_PRESENT_MODE_FIFO_KHR; // гарантированно поддерживается
         ci.clipped        = VK_TRUE;
         ci.oldSwapchain   = oldSwapchain;
+
+        // Выбираем present mode так же как при первичном создании
+        // (был хардкод FIFO — это и давало vsync при resize)
+        {
+            uint32_t pmCount = 0;
+            vkGetPhysicalDeviceSurfacePresentModesKHR(vk.physicalDevice, vk.surface, &pmCount, nullptr);
+            std::vector<VkPresentModeKHR> modes(pmCount);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(vk.physicalDevice, vk.surface, &pmCount, modes.data());
+
+            VkPresentModeKHR pm = VK_PRESENT_MODE_FIFO_KHR;
+            for (auto m : modes) if (m == VK_PRESENT_MODE_MAILBOX_KHR)   { pm = m; break; }
+            if (pm == VK_PRESENT_MODE_FIFO_KHR)
+                for (auto m : modes) if (m == VK_PRESENT_MODE_IMMEDIATE_KHR) { pm = m; break; }
+            ci.presentMode = pm;
+        }
 
         VkSwapchainKHR newSwapchain = VK_NULL_HANDLE;
         if (vkCreateSwapchainKHR(vk.device, &ci, nullptr, &newSwapchain) != VK_SUCCESS)
@@ -176,8 +190,32 @@ namespace RKeng::VulkanSwapchainRecreate
     }
 
     // -----------------------------------------------------------------------
-    // Обновляем imageInFlight под новое количество образов
+    // Пересоздаём imageAvailableSemaphores под новое число образов swapchain.
+    // Их размер = scImages.size(), поэтому при resize окна он может измениться.
     // -----------------------------------------------------------------------
+
+    static void RecreateAcquireSemaphores(VulkanState& vk)
+    {
+        // Уничтожаем старые
+        for (auto sem : vk.imageAvailableSemaphores)
+            if (sem != VK_NULL_HANDLE)
+                vkDestroySemaphore(vk.device, sem, nullptr);
+        vk.imageAvailableSemaphores.clear();
+
+        // Создаём новые по числу образов
+        const size_t Nacq = vk.scImages.size();
+        vk.imageAvailableSemaphores.resize(Nacq);
+        vk.acquireIndex = 0;
+
+        VkSemaphoreCreateInfo semCI{};
+        semCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        for (size_t i = 0; i < Nacq; i++)
+        {
+            if (vkCreateSemaphore(vk.device, &semCI, nullptr, &vk.imageAvailableSemaphores[i]) != VK_SUCCESS)
+                throw std::runtime_error("VulkanSwapchainRecreate: failed to create imageAvailable semaphore.");
+        }
+    }
+
 
     static void ResetImageInFlight(VulkanState& vk)
     {
@@ -215,6 +253,9 @@ namespace RKeng::VulkanSwapchainRecreate
 
         // 7. Сбрасываем imageInFlight под новый размер
         ResetImageInFlight(vk);
+
+        // 8. Пересоздаём imageAvailableSemaphores под новое число образов
+        RecreateAcquireSemaphores(vk);
 
         Logger::Info("VulkanSwapchainRecreate: done.");
     }

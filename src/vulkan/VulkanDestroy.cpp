@@ -13,12 +13,35 @@ namespace RKeng::VulkanDestroy
         VulkanFrameDraw::DestroyWallBuffers(vk);
 
         // Sync objects
+        for (size_t i = 0; i < vk.imageAvailableSemaphores.size(); i++)
+            vkDestroySemaphore(vk.device, vk.imageAvailableSemaphores[i], nullptr);
         for (int i = 0; i < VulkanState::MAX_FRAMES_IN_FLIGHT; i++)
         {
-            if (vk.renderFinishedSemaphores.size()  > (size_t)i) vkDestroySemaphore(vk.device, vk.renderFinishedSemaphores[i],  nullptr);
-            if (vk.imageAvailableSemaphores.size()  > (size_t)i) vkDestroySemaphore(vk.device, vk.imageAvailableSemaphores[i],  nullptr);
-            if (vk.inFlightFences.size()            > (size_t)i) vkDestroyFence    (vk.device, vk.inFlightFences[i],            nullptr);
+            if (vk.renderFinishedSemaphores.size() > (size_t)i) vkDestroySemaphore(vk.device, vk.renderFinishedSemaphores[i], nullptr);
+            if (vk.inFlightFences.size()           > (size_t)i) vkDestroyFence    (vk.device, vk.inFlightFences[i],           nullptr);
         }
+
+        // Uniform buffers (per-frame)
+        for (size_t i = 0; i < vk.uniformBuffers.size(); i++)
+        {
+            if (vk.uniformBuffers[i])       vkDestroyBuffer(vk.device, vk.uniformBuffers[i], nullptr);
+            if (vk.uniformBuffersMemory[i]) vkFreeMemory   (vk.device, vk.uniformBuffersMemory[i], nullptr);
+        }
+        vk.uniformBuffers.clear();
+        vk.uniformBuffersMemory.clear();
+        vk.uniformBuffersMapped.clear();
+
+        // Descriptor pool (неявно освобождает все descriptor sets)
+        if (vk.descriptorPool)  vkDestroyDescriptorPool(vk.device, vk.descriptorPool, nullptr);
+
+        // Descriptor set layout
+        if (vk.descSetLayout)   vkDestroyDescriptorSetLayout(vk.device, vk.descSetLayout, nullptr);
+
+        // Vertex / Index buffers (комната)
+        if (vk.indexBuffer)        vkDestroyBuffer(vk.device, vk.indexBuffer,        nullptr);
+        if (vk.indexBufferMemory)  vkFreeMemory   (vk.device, vk.indexBufferMemory,  nullptr);
+        if (vk.vertexBuffer)       vkDestroyBuffer(vk.device, vk.vertexBuffer,       nullptr);
+        if (vk.vertexBufferMemory) vkFreeMemory   (vk.device, vk.vertexBufferMemory, nullptr);
 
         if (vk.commandPool)  vkDestroyCommandPool(vk.device, vk.commandPool, nullptr);
 

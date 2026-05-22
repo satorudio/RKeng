@@ -245,10 +245,15 @@ namespace RKeng::VulkanFrameDraw
             UploadSceneMeshIfDirty(vk, scene.sceneMesh);
         }
 
+        // Берём семафор acquire по acquireIndex (round-robin по числу образов),
+        // НЕ по currentFrame. Это гарантирует: к моменту следующего acquire
+        // этого же образа его семафор уже освобождён presentation-ом.
+        const uint32_t acqIdx = vk.acquireIndex;
+
         uint32_t imageIndex = 0;
         VkResult result = vkAcquireNextImageKHR(
             vk.device, vk.swapchain, UINT64_MAX,
-            vk.imageAvailableSemaphores[frame], VK_NULL_HANDLE, &imageIndex);
+            vk.imageAvailableSemaphores[acqIdx], VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             Logger::Warn("Swapchain out of date.");
@@ -272,7 +277,7 @@ namespace RKeng::VulkanFrameDraw
         vkResetCommandBuffer(cmd, 0);
         RecordCommandBuffer(vk, cmd, imageIndex);
 
-        VkSemaphore waitSems[]   = { vk.imageAvailableSemaphores[frame] };
+        VkSemaphore waitSems[]   = { vk.imageAvailableSemaphores[acqIdx] };
         VkSemaphore signalSems[] = { vk.renderFinishedSemaphores[frame] };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -302,7 +307,8 @@ namespace RKeng::VulkanFrameDraw
         else if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to present swapchain image.");
 
-        vk.currentFrame = (frame + 1) % VulkanState::MAX_FRAMES_IN_FLIGHT;
+        vk.currentFrame  = (frame + 1) % VulkanState::MAX_FRAMES_IN_FLIGHT;
+        vk.acquireIndex  = (acqIdx + 1) % static_cast<uint32_t>(vk.imageAvailableSemaphores.size());
     }
 
     void DestroyWallBuffers(VulkanState& vk)

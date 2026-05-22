@@ -41,12 +41,16 @@ namespace RKeng
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-        // Семафоры — по числу образов swapchain (создаются после swapchain)
-        // imageAvailable индексируется по currentFrame (кадр CPU)
-        // renderFinished индексируется по currentFrame (кадр CPU)
-        std::vector<VkSemaphore> imageAvailableSemaphores; // size = MAX_FRAMES_IN_FLIGHT
+        // Семафоры acquire: по числу образов swapchain (size = scImages.size()),
+        // индексируются через acquireIndex (round-robin), НЕ через currentFrame.
+        // Это исключает semaphore-reuse warning: каждый образ имеет свой семафор,
+        // presentation гарантированно освобождает его до следующего acquire того же image.
+        // renderFinished и inFlightFences — по MAX_FRAMES_IN_FLIGHT (CPU-кадры).
+        std::vector<VkSemaphore> imageAvailableSemaphores; // size = scImages.size()
         std::vector<VkSemaphore> renderFinishedSemaphores; // size = MAX_FRAMES_IN_FLIGHT
         std::vector<VkFence>     inFlightFences;           // size = MAX_FRAMES_IN_FLIGHT
+
+        uint32_t acquireIndex = 0; // round-robin по imageAvailableSemaphores
 
         // Для каждого образа swapchain — какой fence его использует сейчас
         // Нужно чтобы не начать писать в image пока предыдущий кадр его рендерит
