@@ -26,3 +26,15 @@ Thumbs.db
 *.exe
 *.dll
 *.pdb
+# Backup / temp editor files
+*.bak
+*.orig
+*.tmp
+*.swp
+*~
+
+# Server build
+RKeng/server/build/
+
+# VoxelCarWorld build artifacts
+VoxelCarWorld/build/

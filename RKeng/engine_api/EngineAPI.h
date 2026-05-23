@@ -72,15 +72,6 @@ namespace RKeng
         void     (*GetPlayerVelocity)(PhysicsState& ph, float& vx, float& vy, float& vz) = nullptr;
         float    (*GetGravityY)      (PhysicsState& ph)                                   = nullptr;
 
-        // ── Jolt синглтоны — для InitJoltFromEngine() ────────────────────────
-        void* joltAllocate   = nullptr;
-        void* joltFree       = nullptr;
-        void* joltReallocate = nullptr;
-        void* joltAllocate16 = nullptr;
-        void* joltFree16     = nullptr;
-        void* joltFactory    = nullptr;
-        void* joltAssertFn   = nullptr;
-
         // ── Версия ───────────────────────────────────────────────────────────
         // 3 — базовый набор (GetBodyTransform, SetPlayerVelocity, ...)
         // 4 — добавлен CreateCharacter

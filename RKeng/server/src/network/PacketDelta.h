@@ -27,8 +27,13 @@
 
 namespace RKeng::Protocol
 {
-    static constexpr float DELTA_EPSILON = 0.001f;  // порог изменения float
-    static constexpr size_t MAX_DELTA_PACKET = 256; // с запасом для N игроков
+    static constexpr float  DELTA_EPSILON   = 0.001f;
+    // Макс байт на одного игрока: playerID(4)+mask(1)+x(4)+y(4)+z(4)+yaw(4)+flags(1) = 22.
+    // +1 байт size-префикс на игрока в ServerWorldTick.
+    // 64 игрока * 23 + 8 байт заголовка = 1480 — влезает в MTU.
+    static constexpr size_t MAX_PLAYERS      = 64;
+    static constexpr size_t MAX_DELTA_SINGLE = 22;
+    static constexpr size_t MAX_DELTA_PACKET = MAX_PLAYERS * (MAX_DELTA_SINGLE + 1) + 8;
 
     // Битовые флаги изменившихся полей PlayerSnapshot
     namespace SnapFields {

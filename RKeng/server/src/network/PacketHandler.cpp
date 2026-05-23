@@ -76,6 +76,7 @@ namespace RKeng::Server::PacketHandler
         {
             printf("[Server] Player '%s' (id=%u) disconnected.\n",
                    pit->second.name, pit->second.id);
+            srv.prevSnaps.erase(pit->second.id);  // чистим дельта-стейт
             srv.players.erase(pit);
         }
         srv.addrToID.erase(it);

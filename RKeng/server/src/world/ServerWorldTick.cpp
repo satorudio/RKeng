@@ -70,26 +70,24 @@ namespace RKeng::Server::ServerWorldTick
             snapshots.push_back(snap);
         }
 
-        static std::unordered_map<uint32_t, Protocol::PlayerSnapshot> s_prevSnaps;
-
         std::vector<uint8_t> payload;
-        payload.reserve(256);
+        payload.reserve(Protocol::MAX_DELTA_PACKET);
         payload.resize(5);
         memcpy(payload.data(), &srv.serverTick, 4);
         payload[4] = static_cast<uint8_t>(snapshots.size());
 
-        uint8_t deltaBuf[Protocol::MAX_DELTA_PACKET];
+        uint8_t deltaBuf[Protocol::MAX_DELTA_SINGLE];
         for (auto& snap : snapshots)
         {
-            auto it = s_prevSnaps.find(snap.playerID);
-            const Protocol::PlayerSnapshot* prev = (it != s_prevSnaps.end()) ? &it->second : nullptr;
+            auto it = srv.prevSnaps.find(snap.playerID);
+            const Protocol::PlayerSnapshot* prev = (it != srv.prevSnaps.end()) ? &it->second : nullptr;
             size_t sz = Protocol::EncodeDeltaSnapshot(prev, snap, deltaBuf);
 
             size_t offset = payload.size();
             payload.resize(offset + 1 + sz);
             payload[offset] = static_cast<uint8_t>(sz);
             memcpy(payload.data() + offset + 1, deltaBuf, sz);
-            s_prevSnaps[snap.playerID] = snap;
+            srv.prevSnaps[snap.playerID] = snap;
         }
 
         std::vector<uint8_t> buf(sizeof(Protocol::Header) + payload.size());

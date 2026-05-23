@@ -37,6 +37,10 @@ namespace RKeng::Server
         // Обратный маппинг ip:port → id (для быстрого поиска входящих пакетов)
         std::unordered_map<uint64_t, uint32_t> addrToID;
 
+        // Предыдущие снапшоты для дельта-компрессии (AntiLAGv1).
+        // Здесь а не static в ServerWorldTick — корректно сбрасывается при рестарте.
+        std::unordered_map<uint32_t, Protocol::PlayerSnapshot> prevSnaps;
+
         bool running = false;
     };
 
