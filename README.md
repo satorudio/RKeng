@@ -1,47 +1,91 @@
+<div align="center">
+
 # RKeng
 
-Игровой движок на C++ с нуля.
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-b455ff?style=flat-square&logo=cplusplus)](https://en.cppreference.com/w/cpp/20)
+[![Vulkan](https://img.shields.io/badge/Vulkan-rendering-b455ff?style=flat-square&logo=vulkan)](https://www.vulkan.org/)
+[![Jolt](https://img.shields.io/badge/Jolt-physics-b455ff?style=flat-square)](https://github.com/jrouwe/JoltPhysics)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-b455ff?style=flat-square)](/)
+[![Status](https://img.shields.io/badge/status-active-b455ff?style=flat-square)](/)
+[![License](https://img.shields.io/badge/license-Proprietary-b455ff?style=flat-square)](/)
+
+**Игровой движок на C++ с нуля. Никаких абстракций ради абстракций.**
+
+</div>
 
 ---
 
-## Стек
+## Почему не Unity / Unreal / Godot
 
-<details>
-<summary>Показать</summary>
+| | RKeng | Unity | Unreal | Godot |
+|---|---|---|---|---|
+| Размер рантайма | ~1MB | ~200MB | ~500MB+ | ~40MB |
+| Vulkan от метала | ✅ | ❌ абстракция | ❌ абстракция | ❌ абстракция |
+| Delta compression из коробки | ✅ | ❌ | платно (Netcode) | ❌ |
+| DLL-плагины без рестарта движка | ✅ | ❌ | ❌ | ❌ |
+| Полный контроль над физическим тиком | ✅ | ❌ | частично | ❌ |
+| Кастомный сетевой протокол | ✅ | ❌ | ❌ | ❌ |
+| Royalty / подписка | нет | есть | 5% revenue | нет |
 
-Vulkan · Jolt Physics · Custom UDP Protocol · GLM · Dear ImGui · MiniAudio · C++20
+---
 
-</details>
+## Архитектура
+
+```mermaid
+graph TD
+    EXE["RKeng.exe\n(лончер)"]
+    CORE["RKengCore\n(движок)"]
+    SCENE["YourScene.dll\n(плагин)"]
+    SERVER["Server\n(авторитетный)"]
+
+    EXE --> CORE
+    CORE -->|загружает| SCENE
+    SCENE -->|EngineAPI| CORE
+    SERVER <-->|UDP delta packets| CORE
+
+    subgraph CORE_MODULES["RKengCore"]
+        VK["Vulkan Renderer"]
+        PH["Jolt Physics"]
+        IN["Input"]
+        LD["ScenePluginLoader"]
+    end
+```
 
 ---
 
 ## Возможности
 
 <details>
-<summary>Рендер</summary>
+<summary>🎨 Рендер</summary>
 
-Низкоуровневый Vulkan рендер с instanced rendering, frustum culling и разрушаемой воксельной геометрией.
-
-</details>
-
-<details>
-<summary>Физика</summary>
-
-Полная интеграция Jolt Physics — персонажи, транспорт, разрушаемые объекты, произвольные тела.
+Низкоуровневый Vulkan — без абстракций поверх API.  
+Instanced rendering, frustum culling, разрушаемая воксельная геометрия.  
+Каждый этап инициализации в отдельном файле — ничего не теряется в 2000-строчном монолите.
 
 </details>
 
 <details>
-<summary>Сеть</summary>
+<summary>⚙️ Физика</summary>
 
-Авторитетный сервер на кастомном бинарном протоколе поверх UDP с delta compression.
+Jolt Physics собирается из исходников.  
+Персонажи, транспорт, разрушаемые объекты, произвольные тела — всё доступно через `EngineAPI` из плагина.
 
 </details>
 
 <details>
-<summary>Плагины</summary>
+<summary>🌐 Сеть</summary>
 
-Игровые сцены — отдельные DLL. Движок собирается один раз, сцены грузятся и выгружаются без рестарта.
+Авторитетный сервер на кастомном бинарном протоколе поверх raw UDP.  
+Delta compression — только изменившиеся поля, только нужные байты.
+
+</details>
+
+<details>
+<summary>🔌 Плагины</summary>
+
+Игровые сцены — отдельные DLL.  
+Движок собирается один раз. Сцены грузятся, выгружаются и обновляются без рестарта.  
+Jolt синглтоны общие — никакой двойной инициализации.
 
 </details>
 
@@ -52,13 +96,15 @@ Vulkan · Jolt Physics · Custom UDP Protocol · GLM · Dear ImGui · MiniAudio 
 <details>
 <summary>Показать</summary>
 
-**AntiLAGv1** — минимизация сетевого трафика  
-**SeamlessHandoff** — бесшовные переходы между серверами  
-**DirectToGPU** — вынос вычислений в GPU compute  
-**TransportRPhysics** — физика транспорта из произвольной геометрии  
-**AutoContentGen** — генерация игровых ассетов из текста  
-**RKlang** — скриптовый язык с ограничениями на уровне компилятора  
-**AIShutUpper** ✓ — агент кодогенерации на локальном LLM
+```
+✅ AntiLAGv1        — delta compression сетевых пакетов
+🔄 SeamlessHandoff  — бесшовные переходы между серверами
+🔄 DirectToGPU      — физика и куллинг в Vulkan compute
+🔄 TransportRPhysics — физика транспорта из произвольной геометрии
+💡 AutoContentGen   — генерация ассетов из текстового промпта
+💡 RKlang           — скриптовый язык, читерство запрещено компилятором
+✅ AIShutUpper      — агент кодогенерации на локальном LLM
+```
 
 </details>
 
@@ -80,7 +126,7 @@ public:
 };
 
 extern "C" {
-    RK_EXPORT RKeng::IScenePlugin* RK_CreateScene()              { return new MyScene(); }
+    RK_EXPORT RKeng::IScenePlugin* RK_CreateScene()                { return new MyScene(); }
     RK_EXPORT void                 RK_DestroyScene(IScenePlugin* p) { delete p; }
 }
 ```
