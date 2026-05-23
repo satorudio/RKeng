@@ -1,27 +1,28 @@
-# Игнорируем исходники Jolt, но оставляем заголовочные файлы и скомпиленные либы
-lib/JoltPhysics/**/*
-!lib/JoltPhysics/**/*.h
-!lib/JoltPhysics/**/*.hpp
-!lib/JoltPhysics/**/*.lib
-!lib/JoltPhysics/**/*.dll
-!lib/JoltPhysics/**/*.a
-!lib/JoltPhysics/**/*.so
 
-# Игнорируем папки сборки самого движка RKeng
-build/
-.ninja_deps
-.ninja_log
-CMakeCache.txt
-CMakeFiles/
+# Игнор для движка RKeng (указываем путь через папку)
+RKeng/lib/JoltPhysics/**/*
+!RKeng/lib/JoltPhysics/**/*.h
+!RKeng/lib/JoltPhysics/**/*.hpp
+!RKeng/lib/JoltPhysics/**/*.lib
+!RKeng/lib/JoltPhysics/**/*.dll
+!RKeng/lib/JoltPhysics/**/*.a
+!RKeng/lib/JoltPhysics/**/*.so
 
-# Временный мусор IDE и редакторов
+# Игнор папок сборки движка
+RKeng/build/
+RKeng/.ninja_deps
+RKeng/.ninja_log
+RKeng/CMakeCache.txt
+RKeng/CMakeFiles/
+
+# Мусор IDE (общий для всех папок)
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
+Thumbs.db
 
-# Бинарники и логи твоего билда
+# Бинарники (если они будут появляться и в PixelCarWorld, и в RKeng)
 *.exe
 *.dll
 *.pdb
-*.log
