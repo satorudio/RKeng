@@ -1,327 +1,194 @@
-# 🎮 RKeng — Game Engine
+# RKeng
 
-[![C++](https://img.shields.io/badge/C%2B%2B-20-blue?logo=cplusplus)](https://en.wikipedia.org/wiki/C%2B%2B20)
-[![CMake](https://img.shields.io/badge/CMake-3.20+-blue?logo=cmake)](https://cmake.org/)
-[![License](https://img.shields.io/badge/License-Open%20Source-green)]()
-[![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen)]()
-
-Современный **3D игровой движок** с архитектурой на основе плагинов, построенный на **Vulkan**, **Jolt Physics** и **ECS**.
-
-Оптимизирован для высокопроизводительной интерактивной графики и сложных физических симуляций.
+C++ игровой движок с нуля. Vulkan + Jolt Physics + авторитетный сервер.  
+Один разработчик. Астана, Казахстан.
 
 ---
 
-## ✨ Основные возможности
+## Что это
 
-### 🎨 Графика
-- **Vulkan** — низкоуровневый API для максимальной производительности
-- **Шейдеры** — полная поддержка пользовательских шейдеров
-- **ImGui** — встроенный UI для отладки и интерфейсов
-- **Voxel Rendering** — оптимизированная система вокселей
+Самописный 3D движок — не обёртка над Unity/Unreal, не учебный проект.  
+Архитектура плагинов: движок собирается один раз, игровые сцены грузятся как DLL без перекомпиляции движка.
 
-### 🏗️ Физика
-- **Jolt Physics** — современный движок физики AAA-качества
-- **Контакты и коллизии** — точное обнаружение и обработка
-- **Динамические объекты** — полная поддержка жёстких тел
-
-### 🎯 Архитектура
-- **ECS (Entity Component System)** — гибкая и масштабируемая архитектура
-- **Plugin System** — загружаемые сцены как DLL-плагины
-- **Scene Management** — управление сценами и состояниями
-- **Event System** — система событий и взаимодействия
-
-### 🎵 Мультимедиа
-- **MiniAudio** — поддержка звука и музыки
-- **Assimp** (опционально) — загрузка 3D-моделей
-- **STB Image** — работа с изображениями
-
-### 🌐 Сеть
-- **ENet** — легкая сетевая коммуникация
-- **Многопользовательская поддержка** — готовность к мультиплеру
-
-### ⌨️ Ввод
-- **GLFW** — кроссплатформенное управление окном и вводом
-- **Клавиатура и мышь** — полная поддержка контроллера
-- **Input Polling** — опрос состояния ввода
-
-### 📊 JSON
-- **Nlohmann JSON** — сериализация данных и конфигурация
-- **Сценарии и уровни** — загрузка через JSON
+Делается потому что корпоративные студии делают игры неправильно.
 
 ---
 
-## 🛠️ Технический стек
+## Стек
 
-| Компонент | Технология | Версия |
-|-----------|-----------|--------|
-| **API Графики** | Vulkan | Latest |
-| **Язык** | C++ | 20 |
-| **Сборка** | CMake | 3.20+ |
-| **Физика** | Jolt Physics | - |
-| **ECS** | Встроенная система | - |
-| **Окно** | GLFW | 3+ |
-| **Математика** | GLM | 1.0.3+ |
-| **UI** | Dear ImGui | 1.92.7+ |
+| | |
+|---|---|
+| Рендер | Vulkan (ручная инициализация, instanced rendering, frustum culling) |
+| Физика | Jolt Physics (CharacterVirtual, VehicleConstraint, voxel destruction) |
+| Сеть | ENet + авторитетный сервер + AntiLAGv1 delta compression |
+| Математика | GLM |
+| UI | Dear ImGui |
+| Аудио | MiniAudio |
+| Язык | C++20 |
+| Сборка | CMake + Ninja |
 
 ---
 
-## 📦 Структура проекта
+## Структура
 
 ```
 RKeng/
-├── RKeng/                    # Основной движок
-│   ├── src/
-│   │   ├── core/            # Ядро движка
-│   │   ├── vulkan/          # Vulkan рендер
-│   │   ├── window/          # Система окна (GLFW)
-│   │   ├── input/           # Система ввода
-│   │   ├── physics/         # Jolt Physics интеграция
-│   │   ├── ecs/             # Entity Component System
-│   │   ├── scene/           # Управление сценами
-│   │   ├── voxel/           # Воксельная графика
-│   │   ├── audio/           # MiniAudio интеграция
-│   │   ├── network/         # ENet сетевая система
-│   │   ├── math/            # Математические типы
-│   │   └── utils/           # Утилиты и логирование
-│   ├── lib/                 # Внешние библиотеки
-│   │   ├── glm/             # Математическая библиотека
-│   │   ├── imgui/           # Dear ImGui
-│   │   ├── JoltPhysics/     # Движок физики
-│   │   ├── enet/            # Сетевая библиотека
-│   │   ├── miniaudio/       # Звук
-│   │   ├── stb/             # Обработка изображений
-│   │   └── assimp/          # Загрузчик моделей (опционально)
-│   ├── shaders/             # GLSL/SPIR-V шейдеры
-│   ├── engine_api/          # Публичный API для плагинов
-│   ├── sdk/                 # SDK для разработки плагинов
-│   └── CMakeLists.txt
-│
-├── VoxelCarWorld/           # Пример сцены (DLL-плагин)
-│   ├── src/
-│   │   └── OpenCarWorld.cpp # Реализация сцены
-│   └── CMakeLists.txt
-│
-├── build/                   # Директория сборки (создаётся)
-├── CMakeLists.txt          # Главный конфиг сборки
-├── .gitignore
-└── README.md
+├── RKeng/
+│   ├── src/              — движок (рендер, физика, ввод, сцены)
+│   ├── server/           — авторитетный игровой сервер
+│   ├── engine_api/       — публичный контракт (IScenePlugin, EngineAPI)
+│   ├── sdk/              — заголовки для разработки плагинов
+│   ├── shaders/          — GLSL шейдеры
+│   └── lib/              — зависимости (Jolt, glm, imgui, enet, ...)
+└── VoxelCarWorld/        — сцена-плагин: открытый мир, машина, воксели
 ```
+
+Правило архитектуры: каждый логический блок — отдельный файл.  
+Оркестраторы (`Engine`, `VulkanContext`) не содержат логики — только вызовы.
 
 ---
 
-## 🚀 Быстрый старт
+## Что реализовано
 
-### Требования
+**Рендер**
+- Полная цепочка инициализации Vulkan (разбита по файлам ответственности)
+- Instanced rendering кубов (тысячи объектов без overhead)
+- Frustum culling на CPU (6 плоскостей, AABB тест)
+- Depth buffer, правильные семафоры swapchain
+- Разрушаемые воксельные стены с отлетающими фрагментами
 
-- **CMake** 3.20 или выше
-- **C++ компилятор** с поддержкой C++20
-- **Vulkan SDK** (LunarG)
-- **GLFW** (libglfw3-dev)
-- **Python 3** (для утилит SDK)
+**Физика**
+- Jolt Physics собирается из исходников (нет ABI проблем)
+- `CharacterVirtual` — ходьба, бег, приседание, прыжок, двойной прыжок
+- `VehicleConstraint` — 4WD машина с разрушаемым voxel корпусом
+- Произвольные статические и динамические тела через `EngineAPI`
 
-### Linux/macOS
+**Сервер**
+- Авторитетный сервер на ENet (UDP)
+- `Protocol.h` с `#pragma pack(push,1)`, версионирование, модель угроз
+- **AntiLAGv1** — delta compression со статическим словарём и битовой маской полей
+  - Стоячий игрок = 2 байта вместо 22
+  - `prevSnaps` в `ServerState` (не static, корректно сбрасывается)
+  - Буфер рассчитан на 64 игрока без переполнения
 
-```bash
-# Клонирование
-git clone https://github.com/satorudio/RKeng.git
-cd RKeng
+**Плагины**
+- `ScenePluginLoader` — RAII, некопируемый, cross-platform (LoadLibraryA / dlopen)
+- Jolt синглтоны общие между движком и плагином (нет двойной инициализации)
+- `CharacterVirtual.h` не включается в DLL — только через `EngineAPI::CreateCharacter`
 
-# Установка зависимостей (Ubuntu/Debian)
-sudo apt-get install vulkan-tools libvulkan-dev libglfw3-dev libglm-dev cmake
+---
 
-# Сборка
-mkdir build && cd build
-cmake ..
-cmake --build . --config Release
+## Роадмап
 
-# Запуск
-./RKeng
+### AntiLAGv1 — delta compression `[72%]`
+Минимальный сетевой трафик без потери точности.
+- [x] Битовая маска дельта-снапшота
+- [x] EncodeDelta / DecodeDelta
+- [x] prevSnaps в ServerState
+- [ ] LZ поверх дельты
+- [ ] Benchmark: целевой пакет ~8–15 байт
+
+### SeamlessHandoff — multi-server переходы `[8%]`
+Игрок перемещается между серверами без разрыва.
+- [x] Концепция задокументирована
+- [ ] Двойное TCP-соединение в момент перехода
+- [ ] Синхронизация стейта между серверами
+
+### DirectToGPU — Vulkan compute pipeline `[15%]`
+CPU освобождается от физики и куллинга.
+- [x] Instanced rendering (базовый)
+- [ ] Frustum culling на GPU (compute shader)
+- [ ] Indirect rendering (DrawIndirect)
+- [ ] Физика на GPU
+
+### TransportRPhysics — реалистичная физика транспорта `[22%]`
+Физика из реальной геометрии игрока.
+- [x] VehicleConstraint 4WD
+- [x] Voxel destruction + debris
+- [ ] Аэродинамика из геометрии
+- [ ] Уравнение Циолковского для ракет
+- [ ] Weld stress — сварные швы рвутся под нагрузкой
+
+### AutoContentGen — text → 3D asset pipeline `[3%]`
+Написал "medieval tower" — получил готовый 3D объект с физикой.
+- [ ] Текст → Stable Diffusion → TripoSR → Jolt shape
+- [ ] Кэш по хэшу промпта
+
+### RKlang — скриптовый язык `[0%]`
+Python-подобный язык компилируется в Jolt команды.
+Читерство запрещено на уровне компилятора.
+
+### AIShutUpper — локальный LLM агент `[100% ✓]`
+Ollama + per-file batching + djb2 кэш + система штрафов за стабы.
+
+---
+
+## Разработка плагина (сцены)
+
+Скопируй `sdk/`, реализуй `IScenePlugin`, экспортируй фабрику:
+
+```cpp
+#include "IScenePlugin.h"
+#include "EngineAPI.h"
+
+class MyScene : public RKeng::IScenePlugin {
+public:
+    const char* GetName() const override { return "my_scene"; }
+
+    void OnLoad(RKeng::SceneState& scene, RKeng::PhysicsState& ph,
+                const RKeng::EngineAPI& api) override {
+        // спавн физики, WorldGen, etc.
+    }
+
+    void OnTick(RKeng::SceneState& scene, RKeng::PhysicsState& ph,
+                float dt) override {
+        // игровая логика
+    }
+};
+
+extern "C" {
+    RK_EXPORT RKeng::IScenePlugin* RK_CreateScene()  { return new MyScene(); }
+    RK_EXPORT void RK_DestroyScene(RKeng::IScenePlugin* p) { delete p; }
+}
 ```
 
-### Windows (MinGW)
+Порядок инициализации в `OnLoad`:
+1. `WorldGen::Generate` — пол, препятствия
+2. `api.SpawnStaticBox` / `api.SpawnDynamicBox`
+3. `ph.physicsSystem->OptimizeBroadPhase()` ← обязательно перед персонажем
+4. `api.CreateCharacter`
+
+Полный референс: `sdk/` заголовки.
+
+---
+
+## Сборка
+
+**Требования:** CMake 3.20+, C++20, Vulkan SDK, MinGW-w64 (Windows) / GCC (Linux)
 
 ```bash
-# Сборка
+git clone https://github.com/satorudio/RKeng.git
+cd RKeng/RKeng
 mkdir build && cd build
 cmake -G "Unix Makefiles" ..
-cmake --build . --config Release
-
-# Запуск
-RKeng.exe
+ninja
 ```
 
-### Windows (MSVC)
-
+Сервер собирается отдельно:
 ```bash
-# Сборка
+cd RKeng/server
 mkdir build && cd build
-cmake -G "Visual Studio 17 2022" ..
-cmake --build . --config Release
-
-# Запуск
-Release/RKeng.exe
+cmake -G "Unix Makefiles" ..
+ninja
 ```
 
 ---
 
-## 🎮 Использование
+## Лицензия
 
-### Запуск движка
-
-```cpp
-// Основной цикл управляется из main.cpp
-// RKengCore.dll загружает все компоненты и сцены
-```
-
-### Создание собственной сцены (плагин DLL)
-
-1. **Используйте SDK** в `sdk/` директории
-2. **Реализуйте интерфейс** `IScenePlugin.h`
-3. **Линкуйте к** `libRKengCore.dll.a`
-4. **Поместите DLL** в `build/` директорию
-
-Пример находится в `VoxelCarWorld/`
+Проприетарный. Не открытый исходный код.  
+Использование, копирование и распространение без разрешения запрещено.
 
 ---
 
-## ⚙️ Конфигурация сборки
-
-### Опциональные компоненты
-
-Включение Assimp для загрузки моделей:
-```bash
-cmake -DASSIMP_ROOT=/path/to/assimp ..
-```
-
-Выбор сцены по умолчанию:
-```bash
-cmake -DRK_DEFAULT_SCENE="MyScene" ..
-```
-
-### Флаги компиляции
-
-| Флаг | Значение |
-|------|---------|
-| `RK_DEBUG` | Режим отладки (Debug конфиг) |
-| `RK_RELEASE` | Режим релиза (Release конфиг) |
-| `RK_JOLT_ENABLED` | Физика включена |
-| `RK_IMGUI_ENABLED` | UI отладки включен |
-| `RK_ASSIMP_ENABLED` | Загрузка моделей включена |
-
----
-
-## 🔌 Plugin System
-
-### Архитектура DLL-плагинов
-
-```
-Engine (RKengCore.dll)
-    ├── Jolt Physics Singleton
-    ├── Vulkan Renderer
-    ├── Scene Manager
-    └── Input System
-
-Scene DLL Plugin
-    ├── Loads IScenePlugin interface
-    ├── Accesses Engine via EngineAPI
-    └── Own copy of Jolt (isolated from engine)
-```
-
-**Преимущества:**
-- Гячей загрузка/выгрузка сцен
-- Изоляция сцен друг от друга
-- Возможность хотрелоада
-
----
-
-## 📝 Примеры
-
-### Использование Physics
-
-```cpp
-#include "physics/PhysicsState.h"
-
-// Сцена получает доступ к физике через API
-auto& physics = engine->GetPhysicsState();
-physics.AddRigidBody(...);
-```
-
-### Entity Component System
-
-```cpp
-#include "ecs/ECS.h"
-
-auto entity = ecs.CreateEntity();
-entity.AddComponent<TransformComponent>();
-entity.AddComponent<VelocityComponent>();
-```
-
----
-
-## 🐛 Отладка
-
-### Встроенный ImGui UI
-
-Движок включает Dear ImGui для отладки:
-- Визуализация сцены
-- Профилирование производительности
-- Инспектор сущностей
-
-### Логирование
-
-```cpp
-#include "utils/Logger.h"
-
-RK_LOG("Message");
-RK_WARN("Warning");
-RK_ERROR("Error");
-```
-
----
-
-## 📊 Характеристики
-
-- **91.1%** C++
-- **7.7%** CMake
-- **1.2%** Прочее
-
----
-
-## 🤝 Контрибьютинг
-
-Приветствуются pull-requests! Перед отправкой убедитесь:
-- Код компилируется без ошибок
-- Используется C++20 стиль
-- Документация обновлена
-
----
-
-## 📄 Лицензия
-
-Открытый исходный код. Используется в образовательных и коммерческих целях.
-
----
-
-## 📬 Контакты и поддержка
-
-- **GitHub Issues** — для сообщений об ошибках
-- **Discussions** — для общих вопросов и идей
-
----
-
-## 🎯 Дорожная карта
-
-- ✅ Основной движок и архитектура
-- ✅ Vulkan рендер
-- ✅ Jolt Physics интеграция
-- ✅ Plugin System
-- 🔄 **В разработке:** Расширенный UI editor
-- 🔄 **В разработке:** Встроенный пакетчик ассетов
-- 📋 **Планируется:** Поддержка Lua scripting
-- 📋 **Планируется:** Сетевая синхронизация
-
----
-
-**Создано с ❤️ для разработчиков игр**
-
-*RKeng — выбор современного разработчика для создания интерактивного контента.*
+*RKeng — Арсений, Астана, 2025–2026*
