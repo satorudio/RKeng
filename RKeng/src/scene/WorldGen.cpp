@@ -57,6 +57,52 @@ namespace RKeng::WorldGen
     }
 #endif
 
+    // Вспомогательная функция: добавить тело и сохранить ID в scene
+#ifdef RK_JOLT_ENABLED
+    static void AddStaticBoxTracked(SceneState& scene, PhysicsState& ph,
+                                    float cx, float cy, float cz,
+                                    float hx, float hy, float hz,
+                                    float rotY = 0.0f)
+    {
+        auto id = AddStaticBox(ph, cx, cy, cz, hx, hy, hz, rotY);
+        if (!id.IsInvalid())
+            scene.worldStaticBodyIDs.push_back(id);
+    }
+#endif
+
+    void Destroy(SceneState& scene, PhysicsState& ph)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (!ph.initialized || !ph.bodyInterface) return;
+
+        // Удаляем статические тела мира (пол, стены, блоки, трамплины)
+        for (auto id : scene.worldStaticBodyIDs)
+        {
+            if (!id.IsInvalid()) {
+                ph.bodyInterface->RemoveBody(id);
+                ph.bodyInterface->DestroyBody(id);
+            }
+        }
+        scene.worldStaticBodyIDs.clear();
+
+        // Удаляем физические тела воксельных стен
+        for (auto& wall : scene.voxelWalls)
+        {
+            for (auto& bid : wall.voxelBodyIDs)
+            {
+                if (!bid.IsInvalid()) {
+                    ph.bodyInterface->RemoveBody(bid);
+                    ph.bodyInterface->DestroyBody(bid);
+                    bid = JPH::BodyID();
+                }
+            }
+        }
+        scene.voxelWalls.clear();
+#else
+        (void)scene; (void)ph;
+#endif
+    }
+
     void Generate(SceneState& scene, PhysicsState& ph, const WorldConfig& cfg)
     {
         Rng rng(cfg.seed);
@@ -64,9 +110,12 @@ namespace RKeng::WorldGen
 #ifdef RK_JOLT_ENABLED
         if (!ph.initialized) return;
 
+        // Сбрасываем старые ID на случай повторной генерации
+        scene.worldStaticBodyIDs.clear();
+
         // ---- 1. Большой пол ----------------------------------------
         //   WorldSize = 200 -> пол 400x400 м
-        AddStaticBox(ph,
+        AddStaticBoxTracked(scene, ph,
             0.0f, -0.1f, 0.0f,
             cfg.worldSize, 0.1f, cfg.worldSize);
 
@@ -74,10 +123,10 @@ namespace RKeng::WorldGen
         const float Wf = cfg.worldSize;
         float wallH = 5.0f;
         // Стены стоят НА краю мира, не внутри
-        AddStaticBox(ph,  Wf + 0.5f, wallH*0.5f,  0,    0.5f, wallH, Wf + 1.0f);  // +X
-        AddStaticBox(ph, -Wf - 0.5f, wallH*0.5f,  0,    0.5f, wallH, Wf + 1.0f);  // -X
-        AddStaticBox(ph,  0, wallH*0.5f,  Wf + 0.5f,    Wf + 1.0f, wallH, 0.5f);  // +Z
-        AddStaticBox(ph,  0, wallH*0.5f, -Wf - 0.5f,    Wf + 1.0f, wallH, 0.5f);  // -Z
+        AddStaticBoxTracked(scene, ph,  Wf + 0.5f, wallH*0.5f,  0,    0.5f, wallH, Wf + 1.0f);  // +X
+        AddStaticBoxTracked(scene, ph, -Wf - 0.5f, wallH*0.5f,  0,    0.5f, wallH, Wf + 1.0f);  // -X
+        AddStaticBoxTracked(scene, ph,  0, wallH*0.5f,  Wf + 0.5f,    Wf + 1.0f, wallH, 0.5f);  // +Z
+        AddStaticBoxTracked(scene, ph,  0, wallH*0.5f, -Wf - 0.5f,    Wf + 1.0f, wallH, 0.5f);  // -Z
 
         // ---- 3. Нерушимые бетонные блоки ----------------------------
         for (int i = 0; i < cfg.numSolidBlocks; i++)
@@ -91,7 +140,7 @@ namespace RKeng::WorldGen
 
             if (std::abs(x) < 5.0f && std::abs(z) < 5.0f) continue;
 
-            AddStaticBox(ph, x, hy, z, hx, hy, hz, rotY);
+            AddStaticBoxTracked(scene, ph, x, hy, z, hx, hy, hz, rotY);
         }
 
         // ---- 4. Трамплины -------------------------------------------
@@ -125,7 +174,9 @@ namespace RKeng::WorldGen
                 JPH::Quat::sRotation(JPH::Vec3::sAxisX(), tiltX),
                 JPH::EMotionType::Static,
                 PhysLayers::STATIC);
-            ph.bodyInterface->CreateAndAddBody(bcs, JPH::EActivation::DontActivate);
+            auto rampID = ph.bodyInterface->CreateAndAddBody(bcs, JPH::EActivation::DontActivate);
+            if (!rampID.IsInvalid())
+                scene.worldStaticBodyIDs.push_back(rampID);
         }
 
 #endif

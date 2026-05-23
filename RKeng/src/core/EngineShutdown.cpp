@@ -10,6 +10,7 @@ namespace RKeng
 {
     // Объявлен в EngineInit.cpp
     ScenePluginLoader& GetSceneLoader();
+    extern ScenePluginLoader* s_SceneLoader;
 }
 
 namespace RKeng::EngineShutdown
@@ -70,6 +71,11 @@ namespace RKeng::EngineShutdown
         }
 
         Logger::Shutdown();
+
+        // Удаляем loader после всего — он уже Unload() сделал выше,
+        // но удаляем объект чтобы не было повторного вызова из статического деструктора
+        delete s_SceneLoader;
+        s_SceneLoader = nullptr;
     }
 }
 

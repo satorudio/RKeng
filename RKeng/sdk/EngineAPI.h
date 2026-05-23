@@ -72,18 +72,22 @@ namespace RKeng
         void     (*GetPlayerVelocity)(PhysicsState& ph, float& vx, float& vy, float& vz) = nullptr;
         float    (*GetGravityY)      (PhysicsState& ph)                                   = nullptr;
 
-        // ── Jolt синглтоны — для InitJoltFromEngine() ────────────────────────
-        void* joltAllocate   = nullptr;
-        void* joltFree       = nullptr;
-        void* joltReallocate = nullptr;
-        void* joltAllocate16 = nullptr;
-        void* joltFree16     = nullptr;
-        void* joltFactory    = nullptr;
-        void* joltAssertFn   = nullptr;
-
         // ── Версия ───────────────────────────────────────────────────────────
         // 3 — базовый набор (GetBodyTransform, SetPlayerVelocity, ...)
         // 4 — добавлен CreateCharacter
+        // 5 — добавлены Jolt-синглтоны для InitJoltFromEngine() в DLL
         uint32_t engineVersion = 0;
+
+        // ── Jolt синглтоны ───────────────────────────────────────────────────
+        // Передаются движком в DLL-сцену чтобы та могла вызвать
+        // InitJoltFromEngine() и использовать единственный инстанс Jolt.
+        // Поля заполняются только если движок собран с RK_JOLT_ENABLED.
+        void* joltAllocate   = nullptr;  // JPH::Allocate
+        void* joltFree       = nullptr;  // JPH::Free
+        void* joltReallocate = nullptr;  // JPH::Reallocate
+        void* joltAllocate16 = nullptr;  // JPH::AlignedAllocate
+        void* joltFree16     = nullptr;  // JPH::AlignedFree
+        void* joltFactory    = nullptr;  // JPH::Factory::sInstance
+        void* joltAssertFn   = nullptr;  // JPH::AssertFailed
     };
 }

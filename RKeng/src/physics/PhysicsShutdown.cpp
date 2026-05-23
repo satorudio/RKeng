@@ -19,6 +19,19 @@ namespace RKeng::PhysicsShutdown
         // Затем contactListener (держит обратные ссылки на bodyInterface)
         ph.contactListener.reset();
 
+        // Удаляем все оставшиеся тела перед уничтожением системы
+        // (иначе Jolt JPH_ASSERT при reset physicsSystem)
+        if (ph.bodyInterface && ph.physicsSystem)
+        {
+            JPH::BodyIDVector bodyIDs;
+            ph.physicsSystem->GetBodies(bodyIDs);
+            for (auto id : bodyIDs)
+            {
+                ph.bodyInterface->RemoveBody(id);
+                ph.bodyInterface->DestroyBody(id);
+            }
+        }
+
         // PhysicsSystem — после character, до jobSystem/tempAllocator
         ph.physicsSystem.reset();
 

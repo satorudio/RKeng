@@ -1,8 +1,8 @@
 #pragma once
+#include "RKExport.h"
 #include "CarState.h"
 
 namespace RKeng::CarMesh
 {
-    // Перестроить меш из живых вокселей + дебрис
-    void Rebuild(CarState& car);
+    RK_API void Rebuild(CarState& car);
 }

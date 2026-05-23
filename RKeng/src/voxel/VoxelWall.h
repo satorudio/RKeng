@@ -37,8 +37,8 @@ namespace RKeng
     struct VoxelVertex
     {
         float pos[3];
-        float color[3];
         float normal[3];
+        float color[3];
     };
 
     struct VoxelWall

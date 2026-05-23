@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/satorudio/Desktop/VoxelCarWorld
+# Install script for directory: C:/Users/satorudio/Desktop/Bore/VoxelCarWorld
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "C:/Users/satorudio/Desktop/VoxelCarWorld/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "C:/Users/satorudio/Desktop/Bore/VoxelCarWorld/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

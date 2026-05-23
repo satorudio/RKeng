@@ -22,8 +22,8 @@
 
 namespace RKeng
 {
-    static ScenePluginLoader s_SceneLoader;
-    ScenePluginLoader& GetSceneLoader() { return s_SceneLoader; }
+    static ScenePluginLoader* s_SceneLoader = nullptr;
+    ScenePluginLoader& GetSceneLoader() { return *s_SceneLoader; }
 }
 
 namespace RKeng::EngineInit
@@ -40,6 +40,8 @@ namespace RKeng::EngineInit
 
     void Run(bool& outRunning)
     {
+        s_SceneLoader = new ScenePluginLoader();
+
         Logger::Init();
         Logger::Info("=== RKeng Init ===");
 
@@ -76,12 +78,12 @@ namespace RKeng::EngineInit
             Logger::Info(">>> Step 4: Loading DLL scene '" + activeDll + "'...");
             try
             {
-                s_SceneLoader.Load(activeDll);
+                s_SceneLoader->Load(activeDll);
 
                 EngineAPI api = EngineAPI_Impl::Build();
-                s_SceneLoader.GetPlugin()->OnLoad(GetSceneState(), GetPhysicsState(), api);
+                s_SceneLoader->GetPlugin()->OnLoad(GetSceneState(), GetPhysicsState(), api);
                 Logger::Info(std::string(">>> Step 4: DLL scene '") +
-                             s_SceneLoader.GetPlugin()->GetName() + "' loaded OK");
+                             s_SceneLoader->GetPlugin()->GetName() + "' loaded OK");
             }
             catch (const std::exception& e)
             {

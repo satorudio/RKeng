@@ -121,7 +121,9 @@ namespace RKeng
             if (m_Plugin && m_DestroyFn)
             {
                 m_DestroyFn(m_Plugin);
-                m_Plugin = nullptr;
+                m_Plugin    = nullptr;
+                m_DestroyFn = nullptr;
+                m_CreateFn  = nullptr;
             }
             if (m_Handle)
             {

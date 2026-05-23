@@ -55,12 +55,12 @@ namespace RKeng::CarMesh
             verts.push_back(p[0]);
             verts.push_back(p[1]);
             verts.push_back(p[2]);
-            verts.push_back(col.r * light);
-            verts.push_back(col.g * light);
-            verts.push_back(col.b * light);
             verts.push_back(nx);
             verts.push_back(ny);
             verts.push_back(nz);
+            verts.push_back(col.r * light);
+            verts.push_back(col.g * light);
+            verts.push_back(col.b * light);
         }
         // 2 треугольника
         idxs.push_back(base+0); idxs.push_back(base+1); idxs.push_back(base+2);
