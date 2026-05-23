@@ -1,7 +1,0 @@
-# ninja log v5
-3	2260	8012619338829542	CMakeFiles/CubePhysicsScene.dir/src/OpenCarWorld.cpp.obj	4718c49c729730e1
-2265	3547	8012619349804884	libCubePhysicsScene.dll	505536f7013b932
-2265	3547	8012619349804884	libCubePhysicsScene.dll.a	505536f7013b932
-15	2150	8012623149803522	CMakeFiles/CubePhysicsScene.dir/src/OpenCarWorld.cpp.obj	4718c49c729730e1
-2150	3406	8012623160557609	libCubePhysicsScene.dll	505536f7013b932
-2150	3406	8012623160557609	libCubePhysicsScene.dll.a	505536f7013b932

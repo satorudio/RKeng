@@ -1,40 +1,38 @@
+# ── Build artifacts ──────────────────────────────────────────
+VoxelCarWorld/build/
+RKeng/server/build/
+build/
+out/
 
-# Игнор для движка RKeng (указываем путь через папку)
-RKeng/lib/JoltPhysics/**/*
-!RKeng/lib/JoltPhysics/**/*.h
-!RKeng/lib/JoltPhysics/**/*.hpp
-!RKeng/lib/JoltPhysics/**/*.lib
-!RKeng/lib/JoltPhysics/**/*.dll
-!RKeng/lib/JoltPhysics/**/*.a
-!RKeng/lib/JoltPhysics/**/*.so
-
-# Игнор папок сборки движка
-RKeng/build/
-RKeng/.ninja_deps
-RKeng/.ninja_log
-RKeng/CMakeCache.txt
-RKeng/CMakeFiles/
-
-# Мусор IDE (общий для всех папок)
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-Thumbs.db
-
-# Бинарники (если они будут появляться и в PixelCarWorld, и в RKeng)
-*.exe
+# ── Compiled binaries ────────────────────────────────────────
 *.dll
+*.exe
+*.lib
+*.a
+*.obj
 *.pdb
-# Backup / temp editor files
+*.ilk
+*.exp
+
+# ── CMake / Ninja ────────────────────────────────────────────
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+*.ninja
+.ninja_deps
+.ninja_log
+
+# ── Editor / OS junk ─────────────────────────────────────────
 *.bak
 *.orig
 *.tmp
 *.swp
 *~
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 
-# Server build
-RKeng/server/build/
-
-# VoxelCarWorld build artifacts
-VoxelCarWorld/build/
+# ── GLM docs (20MB html, не нужны в репо) ───────────────────
+RKeng/lib/glm/doc/
