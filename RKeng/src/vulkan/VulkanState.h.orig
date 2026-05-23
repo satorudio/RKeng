@@ -1,0 +1,73 @@
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+#include <cstdint>
+
+// VulkanState.h — единственное место где живут все Vulkan-хэндлы.
+// Никто не хранит их у себя — только читают/пишут сюда.
+// Все VulkanXxx файлы принимают VulkanState& как аргумент.
+
+namespace RKeng
+{
+    struct SwapchainSupportDetails
+    {
+        VkSurfaceCapabilitiesKHR        capabilities{};
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR>   presentModes;
+    };
+
+    struct VulkanState
+    {
+        // --- Instance ---
+        VkInstance               instance       = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+
+        // --- Surface ---
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+        // --- Device ---
+        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+        VkDevice         device         = VK_NULL_HANDLE;
+
+        // --- Queues ---
+        VkQueue graphicsQueue = VK_NULL_HANDLE;
+        VkQueue presentQueue  = VK_NULL_HANDLE;
+        uint32_t graphicsQueueFamily = 0;
+        uint32_t presentQueueFamily  = 0;
+
+        // --- Swapchain ---
+        VkSwapchainKHR           swapchain      = VK_NULL_HANDLE;
+        std::vector<VkImage>     scImages;
+        std::vector<VkImageView> scImageViews;
+        VkFormat                 scFormat{};
+        VkExtent2D               scExtent{};
+
+        // --- Render pass ---
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+
+        // --- Pipeline ---
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        VkPipeline       pipeline       = VK_NULL_HANDLE;
+
+        // --- Framebuffers ---
+        std::vector<VkFramebuffer> framebuffers;
+
+        // --- Commands ---
+        VkCommandPool                commandPool = VK_NULL_HANDLE;
+        std::vector<VkCommandBuffer> commandBuffers;
+
+        // --- Sync (double buffering) ---
+        static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+        std::vector<VkSemaphore> imageAvailableSemaphores;
+        std::vector<VkSemaphore> renderFinishedSemaphores;
+        std::vector<VkFence>     inFlightFences;
+        uint32_t currentFrame = 0;
+
+        // --- Window ---
+        uint32_t windowWidth  = 1280;
+        uint32_t windowHeight = 720;
+    };
+
+    // Глобальный синглтон состояния — доступен всем Vulkan-файлам
+    VulkanState& GetVulkanState();
+}

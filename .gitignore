@@ -1,0 +1,28 @@
+# Игнор для движка RKeng (указываем путь через папку)
+RKeng/lib/JoltPhysics/**/*
+!RKeng/lib/JoltPhysics/**/*.h
+!RKeng/lib/JoltPhysics/**/*.hpp
+!RKeng/lib/JoltPhysics/**/*.lib
+!RKeng/lib/JoltPhysics/**/*.dll
+!RKeng/lib/JoltPhysics/**/*.a
+!RKeng/lib/JoltPhysics/**/*.so
+
+# Игнор папок сборки движка
+RKeng/build/
+RKeng/.ninja_deps
+RKeng/.ninja_log
+RKeng/CMakeCache.txt
+RKeng/CMakeFiles/
+
+# Мусор IDE (общий для всех папок)
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+Thumbs.db
+
+# Бинарники (если они будут появляться и в PixelCarWorld, и в RKeng)
+*.exe
+*.dll
+*.pdb
+*.log
