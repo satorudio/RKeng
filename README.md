@@ -1,7 +1,6 @@
 # RKeng
 
-C++ игровой движок с нуля. Vulkan + Jolt Physics + авторитетный сервер.  
-Один разработчик. Астана, Казахстан.
+C++ игровой движок с нуля. Vulkan + Jolt Physics + авторитетный сервер.
 
 ---
 
@@ -10,26 +9,32 @@ C++ игровой движок с нуля. Vulkan + Jolt Physics + автор�
 Самописный 3D движок — не обёртка над Unity/Unreal, не учебный проект.  
 Архитектура плагинов: движок собирается один раз, игровые сцены грузятся как DLL без перекомпиляции движка.
 
-Делается потому что корпоративные студии делают игры неправильно.
-
 ---
 
 ## Стек
 
+<details>
+<summary>Показать</summary>
+
 | | |
 |---|---|
-| Рендер | Vulkan (ручная инициализация, instanced rendering, frustum culling) |
-| Физика | Jolt Physics (CharacterVirtual, VehicleConstraint, voxel destruction) |
-| Сеть | ENet + авторитетный сервер + AntiLAGv1 delta compression |
+| Рендер | Vulkan |
+| Физика | Jolt Physics |
+| Сеть | Raw sockets (custom protocol) |
 | Математика | GLM |
 | UI | Dear ImGui |
 | Аудио | MiniAudio |
 | Язык | C++20 |
 | Сборка | CMake + Ninja |
 
+</details>
+
 ---
 
-## Структура
+## Архитектура
+
+<details>
+<summary>Показать</summary>
 
 ```
 RKeng/
@@ -39,91 +44,85 @@ RKeng/
 │   ├── engine_api/       — публичный контракт (IScenePlugin, EngineAPI)
 │   ├── sdk/              — заголовки для разработки плагинов
 │   ├── shaders/          — GLSL шейдеры
-│   └── lib/              — зависимости (Jolt, glm, imgui, enet, ...)
+│   └── lib/              — зависимости (Jolt, glm, imgui, ...)
 └── VoxelCarWorld/        — сцена-плагин: открытый мир, машина, воксели
 ```
 
-Правило архитектуры: каждый логический блок — отдельный файл.  
+Правило: каждый логический блок — отдельный файл.  
 Оркестраторы (`Engine`, `VulkanContext`) не содержат логики — только вызовы.
+
+</details>
 
 ---
 
 ## Что реализовано
 
-**Рендер**
+<details>
+<summary>Рендер</summary>
+
 - Полная цепочка инициализации Vulkan (разбита по файлам ответственности)
-- Instanced rendering кубов (тысячи объектов без overhead)
+- Instanced rendering — тысячи объектов без overhead
 - Frustum culling на CPU (6 плоскостей, AABB тест)
-- Depth buffer, правильные семафоры swapchain
+- Depth buffer, корректные семафоры swapchain
 - Разрушаемые воксельные стены с отлетающими фрагментами
 
-**Физика**
+</details>
+
+<details>
+<summary>Физика</summary>
+
 - Jolt Physics собирается из исходников (нет ABI проблем)
 - `CharacterVirtual` — ходьба, бег, приседание, прыжок, двойной прыжок
 - `VehicleConstraint` — 4WD машина с разрушаемым voxel корпусом
 - Произвольные статические и динамические тела через `EngineAPI`
 
-**Сервер**
-- Авторитетный сервер на ENet (UDP)
-- `Protocol.h` с `#pragma pack(push,1)`, версионирование, модель угроз
-- **AntiLAGv1** — delta compression со статическим словарём и битовой маской полей
-  - Стоячий игрок = 2 байта вместо 22
-  - `prevSnaps` в `ServerState` (не static, корректно сбрасывается)
-  - Буфер рассчитан на 64 игрока без переполнения
+</details>
 
-**Плагины**
-- `ScenePluginLoader` — RAII, некопируемый, cross-platform (LoadLibraryA / dlopen)
-- Jolt синглтоны общие между движком и плагином (нет двойной инициализации)
-- `CharacterVirtual.h` не включается в DLL — только через `EngineAPI::CreateCharacter`
+<details>
+<summary>Сеть</summary>
+
+- Авторитетный сервер на raw UDP сокетах
+- Кастомный бинарный протокол (`#pragma pack(push,1)`, версионирование)
+- **AntiLAGv1** — delta compression со статическим словарём и битовой маской полей
+- Стоячий игрок = 2 байта вместо 22
+
+</details>
+
+<details>
+<summary>Плагины</summary>
+
+- `ScenePluginLoader` — RAII, некопируемый, cross-platform
+- Jolt синглтоны общие между движком и плагином
+- `CharacterVirtual` не включается в DLL — только через `EngineAPI`
+
+</details>
 
 ---
 
 ## Роадмап
 
-### AntiLAGv1 — delta compression `[72%]`
-Минимальный сетевой трафик без потери точности.
-- [x] Битовая маска дельта-снапшота
-- [x] EncodeDelta / DecodeDelta
-- [x] prevSnaps в ServerState
-- [ ] LZ поверх дельты
-- [ ] Benchmark: целевой пакет ~8–15 байт
+<details>
+<summary>Показать</summary>
 
-### SeamlessHandoff — multi-server переходы `[8%]`
-Игрок перемещается между серверами без разрыва.
-- [x] Концепция задокументирована
-- [ ] Двойное TCP-соединение в момент перехода
-- [ ] Синхронизация стейта между серверами
+Роадмап движка — что планируется поддерживать на уровне API и инфраструктуры.  
+Конкретная игровая логика (физика транспорта, механики и т.д.) — это уже на стороне сцены-плагина.
 
-### DirectToGPU — Vulkan compute pipeline `[15%]`
-CPU освобождается от физики и куллинга.
-- [x] Instanced rendering (базовый)
-- [ ] Frustum culling на GPU (compute shader)
-- [ ] Indirect rendering (DrawIndirect)
-- [ ] Физика на GPU
+**AntiLAGv1** `[72%]` — delta compression сетевых пакетов  
+**SeamlessHandoff** `[8%]` — переходы между серверами без разрыва соединения  
+**DirectToGPU** `[15%]` — вынос физики и куллинга в Vulkan compute  
+**TransportRPhysics** `[22%]` — API для реалистичной физики транспорта из произвольной геометрии  
+**AutoContentGen** `[3%]` — пайплайн text → 3D asset → Jolt collision shape  
+**RKlang** `[0%]` — скриптовый язык компилируется в команды движка, читерство запрещено на уровне компилятора  
+**AIShutUpper** `[100% ✓]` — локальный LLM агент для кодогенерации (Ollama + система штрафов за стабы)
 
-### TransportRPhysics — реалистичная физика транспорта `[22%]`
-Физика из реальной геометрии игрока.
-- [x] VehicleConstraint 4WD
-- [x] Voxel destruction + debris
-- [ ] Аэродинамика из геометрии
-- [ ] Уравнение Циолковского для ракет
-- [ ] Weld stress — сварные швы рвутся под нагрузкой
-
-### AutoContentGen — text → 3D asset pipeline `[3%]`
-Написал "medieval tower" — получил готовый 3D объект с физикой.
-- [ ] Текст → Stable Diffusion → TripoSR → Jolt shape
-- [ ] Кэш по хэшу промпта
-
-### RKlang — скриптовый язык `[0%]`
-Python-подобный язык компилируется в Jolt команды.
-Читерство запрещено на уровне компилятора.
-
-### AIShutUpper — локальный LLM агент `[100% ✓]`
-Ollama + per-file batching + djb2 кэш + система штрафов за стабы.
+</details>
 
 ---
 
-## Разработка плагина (сцены)
+## Разработка плагина
+
+<details>
+<summary>Показать</summary>
 
 Скопируй `sdk/`, реализуй `IScenePlugin`, экспортируй фабрику:
 
@@ -153,18 +152,21 @@ extern "C" {
 ```
 
 Порядок инициализации в `OnLoad`:
-1. `WorldGen::Generate` — пол, препятствия
+1. `WorldGen::Generate`
 2. `api.SpawnStaticBox` / `api.SpawnDynamicBox`
 3. `ph.physicsSystem->OptimizeBroadPhase()` ← обязательно перед персонажем
 4. `api.CreateCharacter`
 
-Полный референс: `sdk/` заголовки.
+</details>
 
 ---
 
 ## Сборка
 
-**Требования:** CMake 3.20+, C++20, Vulkan SDK, MinGW-w64 (Windows) / GCC (Linux)
+<details>
+<summary>Показать</summary>
+
+**Требования:** CMake 3.20+, C++20, Vulkan SDK, MinGW-w64 / GCC
 
 ```bash
 git clone https://github.com/satorudio/RKeng.git
@@ -174,7 +176,7 @@ cmake -G "Unix Makefiles" ..
 ninja
 ```
 
-Сервер собирается отдельно:
+Сервер:
 ```bash
 cd RKeng/server
 mkdir build && cd build
@@ -182,13 +184,11 @@ cmake -G "Unix Makefiles" ..
 ninja
 ```
 
+</details>
+
 ---
 
 ## Лицензия
 
 Проприетарный. Не открытый исходный код.  
 Использование, копирование и распространение без разрешения запрещено.
-
----
-
-*RKeng — Арсений, Астана, 2025–2026*
