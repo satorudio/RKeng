@@ -1,3 +1,4 @@
+
 # Игнор для движка RKeng (указываем путь через папку)
 RKeng/lib/JoltPhysics/**/*
 !RKeng/lib/JoltPhysics/**/*.h
@@ -25,4 +26,3 @@ Thumbs.db
 *.exe
 *.dll
 *.pdb
-*.log
