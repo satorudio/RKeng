@@ -72,6 +72,15 @@ namespace RKeng
         std::vector<uint32_t> indices;
         Mat4                  modelMatrix = Mat4(1.0f);
         bool                  dirty       = false;
+
+        // ── Instanced rendering ─────────────────────────────────────────────
+        // Если instanceData не пустой — движок делает instanced draw
+        // поверх unit-куба (1x1x1), игнорируя vertices/indices.
+        // Формат на инстанс: mat4(16) + vec3 color(3) + float wireframe(1) = 20 floats
+        // wireframe: 0.0 = solid, 1.0 = wireframe (зелёный хитбокс)
+        std::vector<float>    instanceData;   // N * 20 floats
+        uint32_t              instanceCount = 0;
+        bool                  instanceDirty = false;
     };
 
     struct SceneState

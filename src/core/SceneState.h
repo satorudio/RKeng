@@ -72,6 +72,11 @@ namespace RKeng
         std::vector<uint32_t> indices;
         Mat4                  modelMatrix = Mat4(1.0f);
         bool                  dirty       = false;
+
+        // Instanced rendering: mat4(16)+color(3)+wire(1) = 20 floats per instance
+        std::vector<float>    instanceData;
+        uint32_t              instanceCount = 0;
+        bool                  instanceDirty = false;
     };
 
     struct SceneState

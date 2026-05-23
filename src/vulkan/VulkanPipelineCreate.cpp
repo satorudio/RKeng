@@ -25,21 +25,33 @@ namespace RKeng::VulkanPipelineCreate
 
         std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
 
-        // Vertex input: pos(3) + normal(3) + color(3) = 9 floats = 36 bytes
-        VkVertexInputBindingDescription binding{};
-        binding.binding   = 0;
-        binding.stride    = sizeof(float) * 9;
-        binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        // ── Binding 0: per-vertex  pos(3)+normal(3)+color(3) = 9 floats ────
+        // ── Binding 1: per-instance mat4(16)+color(3)+wire(1) = 20 floats ─
+        std::array<VkVertexInputBindingDescription, 2> bindings{};
+        bindings[0].binding   = 0;
+        bindings[0].stride    = sizeof(float) * 9;
+        bindings[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        bindings[1].binding   = 1;
+        bindings[1].stride    = sizeof(float) * 20; // mat4(16) + vec3(3) + float(1)
+        bindings[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 
-        std::array<VkVertexInputAttributeDescription, 3> attrs{};
+        // Per-vertex attrs (binding 0)
+        std::array<VkVertexInputAttributeDescription, 9> attrs{};
         attrs[0] = {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0};
         attrs[1] = {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*3};
         attrs[2] = {2, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*6};
+        // Per-instance attrs (binding 1): mat4 = 4x vec4 at locations 3..6
+        attrs[3] = {3, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float)* 0};
+        attrs[4] = {4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float)* 4};
+        attrs[5] = {5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float)* 8};
+        attrs[6] = {6, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float)*12};
+        attrs[7] = {7, 1, VK_FORMAT_R32G32B32_SFLOAT,    sizeof(float)*16}; // instanceColor
+        attrs[8] = {8, 1, VK_FORMAT_R32_SFLOAT,           sizeof(float)*19}; // instanceWireframe
 
         VkPipelineVertexInputStateCreateInfo vertexInput{};
         vertexInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInput.vertexBindingDescriptionCount   = 1;
-        vertexInput.pVertexBindingDescriptions      = &binding;
+        vertexInput.vertexBindingDescriptionCount   = static_cast<uint32_t>(bindings.size());
+        vertexInput.pVertexBindingDescriptions      = bindings.data();
         vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(attrs.size());
         vertexInput.pVertexAttributeDescriptions    = attrs.data();
 

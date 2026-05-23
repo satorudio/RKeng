@@ -30,6 +30,124 @@ namespace RKeng::VulkanFrameDraw
     };
     static SceneMeshBuffers s_sceneMeshBuf;
 
+    // ── Instance buffer для кубов ─────────────────────────────────────────
+    // Layout per instance: mat4(16 floats) + vec3 color(3) + float wire(1) = 20 floats
+    struct InstanceBuffer
+    {
+        VkBuffer       buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        uint32_t       count  = 0;
+        bool           valid  = false;
+    };
+    static InstanceBuffer s_instanceBuf;
+
+    // Единственный куб 1x1x1 — shared geometry для всех инстансов
+    struct CubeGeo
+    {
+        VkBuffer       vertexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory vertexMem    = VK_NULL_HANDLE;
+        VkBuffer       indexBuffer  = VK_NULL_HANDLE;
+        VkDeviceMemory indexMem     = VK_NULL_HANDLE;
+        uint32_t       indexCount   = 0;
+        bool           built        = false;
+    };
+    static CubeGeo s_cubeGeo;
+
+    static void BuildUnitCubeGeo(VulkanState& vk)
+    {
+        if (s_cubeGeo.built) return;
+        // pos+normal+color per vertex (9 floats), color будет overridden instanceColor
+        struct V { float p[3]; float n[3]; float c[3]; };
+        const float W = 0.5f;
+        // 6 граней, 4 вершины каждая
+        static const V verts[] = {
+            // +Z
+            {{-W,-W, W},{0,0,1},{1,1,1}}, {{ W,-W, W},{0,0,1},{1,1,1}},
+            {{ W, W, W},{0,0,1},{1,1,1}}, {{-W, W, W},{0,0,1},{1,1,1}},
+            // -Z
+            {{ W,-W,-W},{0,0,-1},{1,1,1}}, {{-W,-W,-W},{0,0,-1},{1,1,1}},
+            {{-W, W,-W},{0,0,-1},{1,1,1}}, {{ W, W,-W},{0,0,-1},{1,1,1}},
+            // +X
+            {{ W,-W, W},{1,0,0},{1,1,1}}, {{ W,-W,-W},{1,0,0},{1,1,1}},
+            {{ W, W,-W},{1,0,0},{1,1,1}}, {{ W, W, W},{1,0,0},{1,1,1}},
+            // -X
+            {{-W,-W,-W},{-1,0,0},{1,1,1}}, {{-W,-W, W},{-1,0,0},{1,1,1}},
+            {{-W, W, W},{-1,0,0},{1,1,1}}, {{-W, W,-W},{-1,0,0},{1,1,1}},
+            // +Y
+            {{-W, W, W},{0,1,0},{1,1,1}}, {{ W, W, W},{0,1,0},{1,1,1}},
+            {{ W, W,-W},{0,1,0},{1,1,1}}, {{-W, W,-W},{0,1,0},{1,1,1}},
+            // -Y
+            {{-W,-W,-W},{0,-1,0},{1,1,1}}, {{ W,-W,-W},{0,-1,0},{1,1,1}},
+            {{ W,-W, W},{0,-1,0},{1,1,1}}, {{-W,-W, W},{0,-1,0},{1,1,1}},
+        };
+        std::vector<uint32_t> idx;
+        for (uint32_t f = 0; f < 6; f++) {
+            uint32_t b = f * 4;
+            idx.push_back(b+0); idx.push_back(b+1); idx.push_back(b+2);
+            idx.push_back(b+0); idx.push_back(b+2); idx.push_back(b+3);
+        }
+
+        auto upload = [&](const void* data, VkDeviceSize size,
+                          VkBufferUsageFlags usage,
+                          VkBuffer& buf, VkDeviceMemory& mem) {
+            VkBuffer stg; VkDeviceMemory stgM;
+            VulkanBufferCreate::CreateBuffer(vk, size,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                stg, stgM);
+            void* ptr; vkMapMemory(vk.device, stgM, 0, size, 0, &ptr);
+            memcpy(ptr, data, size); vkUnmapMemory(vk.device, stgM);
+            VulkanBufferCreate::CreateBuffer(vk, size,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buf, mem);
+            VulkanBufferCreate::CopyBuffer(vk, stg, buf, size);
+            vkDestroyBuffer(vk.device, stg, nullptr);
+            vkFreeMemory(vk.device, stgM, nullptr);
+        };
+
+        upload(verts, sizeof(verts), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+               s_cubeGeo.vertexBuffer, s_cubeGeo.vertexMem);
+        upload(idx.data(), sizeof(uint32_t)*idx.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+               s_cubeGeo.indexBuffer, s_cubeGeo.indexMem);
+        s_cubeGeo.indexCount = (uint32_t)idx.size();
+        s_cubeGeo.built = true;
+    }
+
+    static void DestroyCubeGeo(VulkanState& vk)
+    {
+        if (s_cubeGeo.vertexBuffer) { vkDestroyBuffer(vk.device, s_cubeGeo.vertexBuffer, nullptr); vkFreeMemory(vk.device, s_cubeGeo.vertexMem, nullptr); s_cubeGeo.vertexBuffer = VK_NULL_HANDLE; }
+        if (s_cubeGeo.indexBuffer)  { vkDestroyBuffer(vk.device, s_cubeGeo.indexBuffer,  nullptr); vkFreeMemory(vk.device, s_cubeGeo.indexMem,  nullptr); s_cubeGeo.indexBuffer  = VK_NULL_HANDLE; }
+        s_cubeGeo.built = false;
+    }
+
+    static void DestroyInstanceBuffer(VulkanState& vk)
+    {
+        if (s_instanceBuf.buffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(vk.device, s_instanceBuf.buffer, nullptr);
+            vkFreeMemory(vk.device, s_instanceBuf.memory, nullptr);
+            s_instanceBuf.buffer = VK_NULL_HANDLE;
+            s_instanceBuf.valid  = false;
+            s_instanceBuf.count  = 0;
+        }
+    }
+
+    static void UploadInstanceBuffer(VulkanState& vk, const std::vector<float>& data, uint32_t count)
+    {
+        DestroyInstanceBuffer(vk);
+        if (data.empty() || count == 0) return;
+        VkDeviceSize size = sizeof(float) * data.size();
+        // HOST_VISIBLE — instance data меняется часто, staging не нужен
+        VulkanBufferCreate::CreateBuffer(vk, size,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            s_instanceBuf.buffer, s_instanceBuf.memory);
+        void* ptr; vkMapMemory(vk.device, s_instanceBuf.memory, 0, size, 0, &ptr);
+        memcpy(ptr, data.data(), size);
+        vkUnmapMemory(vk.device, s_instanceBuf.memory);
+        s_instanceBuf.count = count;
+        s_instanceBuf.valid = true;
+    }
+
     static void DestroySceneMeshBuffers(VulkanState& vk)
     {
         if (s_sceneMeshBuf.vertexBuffer != VK_NULL_HANDLE) {
@@ -48,6 +166,15 @@ namespace RKeng::VulkanFrameDraw
 
     static void UploadSceneMeshIfDirty(VulkanState& vk, SceneMesh& mesh)
     {
+        // ── Instanced path ────────────────────────────────────────────────
+        if (mesh.instanceDirty)
+        {
+            mesh.instanceDirty = false;
+            BuildUnitCubeGeo(vk);
+            UploadInstanceBuffer(vk, mesh.instanceData, mesh.instanceCount);
+        }
+
+        // ── Legacy path (произвольный меш) ────────────────────────────────
         if (!mesh.dirty) return;
         mesh.dirty = false;
 
@@ -207,6 +334,22 @@ namespace RKeng::VulkanFrameDraw
             vkCmdDrawIndexed(cmd, s_sceneMeshBuf.indexCount, 1, 0, 0, 0);
         }
 
+        // ── Instanced кубы ──────────────────────────────────────────────────
+        // Binding 0 = unit cube geometry (shared), Binding 1 = per-instance data
+        if (s_instanceBuf.valid && s_instanceBuf.count > 0 && s_cubeGeo.built)
+        {
+            // identity push constant — трансформы уже в instance data
+            glm::mat4 identity(1.0f);
+            vkCmdPushConstants(cmd, vk.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+                               0, sizeof(glm::mat4), &identity[0][0]);
+
+            VkBuffer vbufs[]      = { s_cubeGeo.vertexBuffer, s_instanceBuf.buffer };
+            VkDeviceSize offs[]   = { 0, 0 };
+            vkCmdBindVertexBuffers(cmd, 0, 2, vbufs, offs);
+            vkCmdBindIndexBuffer(cmd, s_cubeGeo.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(cmd, s_cubeGeo.indexCount, s_instanceBuf.count, 0, 0, 0);
+        }
+
         vkCmdEndRenderPass(cmd);
         if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
             throw std::runtime_error("Failed to record command buffer.");
@@ -237,7 +380,7 @@ namespace RKeng::VulkanFrameDraw
             VoxelWallBuffer::UploadDirtyWalls(vk, scene.voxelWalls, s_wallBuffers);
 
         // Обновляем generic меш сцены
-        if (scene.sceneMesh.dirty)
+        if (scene.sceneMesh.dirty || scene.sceneMesh.instanceDirty)
         {
             vkWaitForFences(vk.device,
                             static_cast<uint32_t>(vk.inFlightFences.size()),
@@ -316,5 +459,7 @@ namespace RKeng::VulkanFrameDraw
         vkDeviceWaitIdle(vk.device);
         VoxelWallBuffer::DestroyAll(vk, s_wallBuffers);
         DestroySceneMeshBuffers(vk);
+        DestroyInstanceBuffer(vk);
+        DestroyCubeGeo(vk);
     }
 }
