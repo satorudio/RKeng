@@ -1,9 +1,0 @@
-// RKeng.rc — встраивает манифест в PE-заголовок exe.
-// windres компилирует этот файл в .o который линкуется в RKeng.exe.
-// Без этого манифест нужно класть рядом с exe как отдельный файл —
-// встроенный надёжнее и не теряется при копировании.
-
-#include <windows.h>
-
-// RT_MANIFEST (24), ID 1 = application manifest
-1 RT_MANIFEST "RKeng.manifest"
