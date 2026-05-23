@@ -1,10 +1,5 @@
 #pragma once
 // EngineAPI.h — сервисы движка доступные сцене.
-//
-// Jolt-синглтоны (аллокаторы, Factory) живут в RKengCore / exe.
-// DLL-сцена вызывает InitJoltFromEngine(api) в начале OnLoad()
-// чтобы пробросить их в свою копию libJolt.a.
-// После этого любой Jolt-код в DLL работает нормально.
 #include <cstdint>
 
 namespace RKeng
@@ -39,6 +34,15 @@ namespace RKeng
         bool     isSensor = false;
     };
 
+    // Описание капсулы персонажа для CreateCharacter()
+    struct RK_CharacterDesc
+    {
+        float spawnX = 0.f, spawnY = 2.f, spawnZ = 0.f;
+        float capsuleHalfHeight = 0.9f;   // высота цилиндрической части капсулы
+        float capsuleRadius     = 0.35f;  // радиус капсулы
+        float maxSlopeAngleDeg  = 45.f;   // макс угол подъёма
+    };
+
     struct EngineAPI
     {
         // ── Логгер ───────────────────────────────────────────────────────────
@@ -47,26 +51,39 @@ namespace RKeng
         void (*LogError)(const char* msg) = nullptr;
 
         // ── Физика: статические тела ─────────────────────────────────────────
-        uint32_t (*SpawnStaticBox)(PhysicsState& ph, const RK_BoxBody& box) = nullptr;
+        uint32_t (*SpawnStaticBox)   (PhysicsState& ph, const RK_BoxBody& box)   = nullptr;
         uint32_t (*SpawnStaticBoxRot)(PhysicsState& ph, const RK_StaticBox& box) = nullptr;
 
         // ── Физика: динамические тела ────────────────────────────────────────
         uint32_t (*SpawnDynamicBox)(PhysicsState& ph, const RK_DynamicBox& box) = nullptr;
-        void     (*DestroyBody)(PhysicsState& ph, uint32_t bodyID) = nullptr;
+        void     (*DestroyBody)   (PhysicsState& ph, uint32_t bodyID)           = nullptr;
+
+        // ── Физика: персонаж ─────────────────────────────────────────────────
+        // Создаёт CharacterVirtual в движке. Вызывать ПОСЛЕ SpawnStaticBox +
+        // OptimizeBroadPhase. CharacterVirtual.h не включается в DLL-плагине
+        // (JPH_IMPLEMENT_RTTI_VIRTUAL → краш при LoadLibraryA).
+        bool     (*CreateCharacter)(PhysicsState& ph, const RK_CharacterDesc& desc) = nullptr;
+
+        bool     (*GetBodyTransform)(PhysicsState& ph, uint32_t bodyID,
+                     float& px, float& py, float& pz,
+                     float& qx, float& qy, float& qz, float& qw) = nullptr;
+
+        void     (*SetPlayerVelocity)(PhysicsState& ph, float vx, float vy, float vz) = nullptr;
+        void     (*GetPlayerVelocity)(PhysicsState& ph, float& vx, float& vy, float& vz) = nullptr;
+        float    (*GetGravityY)      (PhysicsState& ph)                                   = nullptr;
 
         // ── Jolt синглтоны — для InitJoltFromEngine() ────────────────────────
-        // DLL линкует свою копию libJolt.a с nullptr-синглтонами.
-        // Движок передаёт реальные указатели здесь; DLL вызывает
-        // InitJoltFromEngine(api) в самом начале OnLoad() чтобы их проставить.
-        void* joltAllocate   = nullptr;   // JPH::AllocateFunction
-        void* joltFree       = nullptr;   // JPH::FreeFunction
-        void* joltReallocate = nullptr;   // JPH::ReallocateFunction
-        void* joltAllocate16 = nullptr;   // JPH::AlignedAllocateFunction
-        void* joltFree16     = nullptr;   // JPH::AlignedFreeFunction
-        void* joltFactory    = nullptr;   // JPH::Factory*
-        void* joltAssertFn   = nullptr;   // JPH::AssertFailedFunction
+        void* joltAllocate   = nullptr;
+        void* joltFree       = nullptr;
+        void* joltReallocate = nullptr;
+        void* joltAllocate16 = nullptr;
+        void* joltFree16     = nullptr;
+        void* joltFactory    = nullptr;
+        void* joltAssertFn   = nullptr;
 
-        // ── Утилиты ──────────────────────────────────────────────────────────
+        // ── Версия ───────────────────────────────────────────────────────────
+        // 3 — базовый набор (GetBodyTransform, SetPlayerVelocity, ...)
+        // 4 — добавлен CreateCharacter
         uint32_t engineVersion = 0;
     };
 }

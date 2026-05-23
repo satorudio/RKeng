@@ -3,6 +3,7 @@
 // Живёт только в движке. Сцена про него не знает.
 
 #include "../../engine_api/IScenePlugin.h"
+#include "../utils/Logger.h"
 #include <string>
 #include <stdexcept>
 
@@ -79,6 +80,9 @@ namespace RKeng
         {
             Unload();
 
+            Logger::Info("[Loader] LoadLibraryA start: " + dllPath);
+            // Если крэш здесь (0x80000003/0xC0000005) — падение в статических
+            // конструкторах DLL (JPH_IMPLEMENT_RTTI_VIRTUAL и т.п.) до DllMain.
 #ifdef _WIN32
             m_Handle = RK_DLOPEN(dllPath);
 #else
@@ -87,6 +91,7 @@ namespace RKeng
             if (!m_Handle)
                 throw std::runtime_error(
                     "[ScenePluginLoader] Cannot load '" + dllPath + "': " + RK_DLERROR());
+            Logger::Info("[Loader] LoadLibraryA OK");
 
             // Двойной каст через void* — единственный способ беззвучно
             // конвертировать FARPROC (Win32) / void* (POSIX) в конкретный

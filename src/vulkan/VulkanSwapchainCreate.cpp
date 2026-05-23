@@ -32,13 +32,11 @@ namespace RKeng::VulkanSwapchainCreate
 
     static VkPresentModeKHR ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes)
     {
-        // Mailbox = triple buffering, без vsync и без тиринга — лучший вариант
         for (const auto& m : modes)
-            if (m == VK_PRESENT_MODE_MAILBOX_KHR) return m;
-        // Immediate = без vsync, возможен тиринг, но максимальный fps
+            if (m == VK_PRESENT_MODE_MAILBOX_KHR) { Logger::Info("PresentMode: MAILBOX (triple buffer)"); return m; }
         for (const auto& m : modes)
-            if (m == VK_PRESENT_MODE_IMMEDIATE_KHR) return m;
-        // FIFO = vsync, гарантированно поддерживается — последний резерв
+            if (m == VK_PRESENT_MODE_IMMEDIATE_KHR) { Logger::Info("PresentMode: IMMEDIATE (no vsync)"); return m; }
+        Logger::Info("PresentMode: FIFO (vsync - fallback)");
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 

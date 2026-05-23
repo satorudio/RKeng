@@ -9,10 +9,14 @@
 #ifdef RK_JOLT_ENABLED
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/Memory.h>
 #include <Jolt/Core/IssueReporting.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <cmath>
 #endif
 
@@ -108,6 +112,64 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
+
+    // ── GetBodyTransform — позиция/ротация тела без BodyInterface.h в DLL ──
+    static bool GetBodyTransform(PhysicsState& ph, uint32_t bodyID,
+        float& px, float& py, float& pz,
+        float& qx, float& qy, float& qz, float& qw)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (!ph.bodyInterface) return false;
+        JPH::BodyID jid(bodyID);
+        if (!ph.bodyInterface->IsAdded(jid)) return false;
+        JPH::RVec3 p = ph.bodyInterface->GetPosition(jid);
+        JPH::Quat  q = ph.bodyInterface->GetRotation(jid);
+        px = (float)p.GetX(); py = (float)p.GetY(); pz = (float)p.GetZ();
+        qx = q.GetX(); qy = q.GetY(); qz = q.GetZ(); qw = q.GetW();
+        return true;
+#else
+        (void)ph; (void)bodyID;
+        px=py=pz=qx=qy=qz=0.f; qw=1.f;
+        return false;
+#endif
+    }
+
+    // ── Персонаж: velocity bridge — безопасная альтернатива CharacterVirtual.h в DLL ──
+    // JPH_IMPLEMENT_RTTI_VIRTUAL в CharacterVirtual.h создаёт глобальные объекты
+    // при загрузке DLL → краш до DllMain. DLL использует эти три API-функции.
+    static void SetPlayerVelocity(PhysicsState& ph, float vx, float vy, float vz)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (ph.character)
+            ph.character->SetLinearVelocity(JPH::Vec3(vx, vy, vz));
+#else
+        (void)ph; (void)vx; (void)vy; (void)vz;
+#endif
+    }
+
+    static void GetPlayerVelocity(PhysicsState& ph, float& vx, float& vy, float& vz)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (ph.character) {
+            JPH::Vec3 v = ph.character->GetLinearVelocity();
+            vx = v.GetX(); vy = v.GetY(); vz = v.GetZ();
+        } else { vx = vy = vz = 0.0f; }
+#else
+        (void)ph; vx = vy = vz = 0.0f;
+#endif
+    }
+
+    static float GetGravityY(PhysicsState& ph)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (ph.physicsSystem)
+            return ph.physicsSystem->GetGravity().GetY();
+#else
+        (void)ph;
+#endif
+        return -9.81f;
+    }
+
     static void DestroyBody(PhysicsState& ph, uint32_t bodyID)
     {
 #ifdef RK_JOLT_ENABLED
@@ -120,6 +182,59 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
+
+    // ── CreateCharacter — создаёт CharacterVirtual по запросу DLL-сцены ─────
+    // DLL не включает CharacterVirtual.h (JPH_IMPLEMENT_RTTI_VIRTUAL → краш).
+    // Вызывать после SpawnStaticBox + OptimizeBroadPhase.
+    static bool CreateCharacter(PhysicsState& ph, const RK_CharacterDesc& desc)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (!ph.initialized || !ph.physicsSystem) return false;
+        if (ph.character) return true; // уже создан
+
+        JPH::CharacterVirtualSettings cs;
+        cs.mMaxSlopeAngle             = JPH::DegreesToRadians(desc.maxSlopeAngleDeg);
+        cs.mMaxStrength               = 100.0f;
+        cs.mBackFaceMode              = JPH::EBackFaceMode::CollideWithBackFaces;
+        cs.mCharacterPadding          = 0.02f;
+        cs.mPenetrationRecoverySpeed  = 1.0f;
+        cs.mPredictiveContactDistance = 0.1f;
+
+        JPH::CapsuleShapeSettings capSS(desc.capsuleHalfHeight, desc.capsuleRadius);
+        auto capResult = capSS.Create();
+        if (capResult.HasError()) {
+            Logger::Error(std::string("[API] CreateCharacter capsule error: ") +
+                          capResult.GetError().c_str());
+            return false;
+        }
+
+        JPH::RotatedTranslatedShapeSettings rtsSS(
+            JPH::Vec3(0.f, desc.capsuleHalfHeight + desc.capsuleRadius, 0.f),
+            JPH::Quat::sIdentity(),
+            capResult.Get());
+        auto rtsResult = rtsSS.Create();
+        if (rtsResult.HasError()) {
+            Logger::Error("[API] CreateCharacter RotatedTranslatedShape error");
+            return false;
+        }
+        cs.mShape = rtsResult.Get();
+
+        ph.character = std::make_unique<JPH::CharacterVirtual>(
+            &cs,
+            JPH::RVec3(desc.spawnX, desc.spawnY, desc.spawnZ),
+            JPH::Quat::sIdentity(),
+            ph.physicsSystem.get());
+
+        Logger::Info("[API] CharacterVirtual created at ("
+                     + std::to_string(desc.spawnX) + ","
+                     + std::to_string(desc.spawnY) + ","
+                     + std::to_string(desc.spawnZ) + ")");
+        return true;
+#else
+        (void)ph; (void)desc; return false;
+#endif
+    }
+
     inline EngineAPI Build()
     {
         EngineAPI api;
@@ -129,8 +244,13 @@ namespace RKeng::EngineAPI_Impl
         api.SpawnStaticBox    = SpawnStaticBox;
         api.SpawnStaticBoxRot = SpawnStaticBoxRot;
         api.SpawnDynamicBox   = SpawnDynamicBox;
-        api.DestroyBody       = DestroyBody;
-        api.engineVersion     = 2;
+        api.DestroyBody          = DestroyBody;
+        api.GetBodyTransform      = GetBodyTransform;
+        api.SetPlayerVelocity    = SetPlayerVelocity;
+        api.GetPlayerVelocity    = GetPlayerVelocity;
+        api.GetGravityY          = GetGravityY;
+        api.CreateCharacter       = CreateCharacter;
+        api.engineVersion        = 4;
         // ── Jolt синглтоны для InitJoltFromEngine() в DLL ────────────────
 #ifdef RK_JOLT_ENABLED
         api.joltAllocate   = reinterpret_cast<void*>(JPH::Allocate);

@@ -13,6 +13,7 @@
 #include <Jolt/Core/Memory.h>
 #include <Jolt/Core/IssueReporting.h>
 #include <Jolt/Physics/EMotionType.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <cmath>
 #endif
 
@@ -109,6 +110,44 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
+
+    // ── Персонаж: velocity bridge — DLL не включает CharacterVirtual.h ────────
+    // CharacterVirtual.h содержит JPH_IMPLEMENT_RTTI_VIRTUAL — макрос, создающий
+    // глобальные объекты при загрузке DLL → краш до DllMain.
+    // Поэтому DLL управляет персонажем только через эти три функции API.
+    static void SetPlayerVelocity(PhysicsState& ph, float vx, float vy, float vz)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (ph.character)
+            ph.character->SetLinearVelocity(JPH::Vec3(vx, vy, vz));
+#else
+        (void)ph; (void)vx; (void)vy; (void)vz;
+#endif
+    }
+
+    static void GetPlayerVelocity(PhysicsState& ph, float& vx, float& vy, float& vz)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (ph.character) {
+            JPH::Vec3 v = ph.character->GetLinearVelocity();
+            vx = v.GetX(); vy = v.GetY(); vz = v.GetZ();
+        } else { vx = vy = vz = 0.0f; }
+#else
+        (void)ph; vx = vy = vz = 0.0f;
+#endif
+    }
+
+    static float GetGravityY(PhysicsState& ph)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (ph.physicsSystem)
+            return ph.physicsSystem->GetGravity().GetY();
+#else
+        (void)ph;
+#endif
+        return -9.81f;
+    }
+
     static void DestroyBody(PhysicsState& ph, uint32_t bodyID)
     {
 #ifdef RK_JOLT_ENABLED
@@ -130,8 +169,11 @@ namespace RKeng::EngineAPI_Impl
         api.SpawnStaticBox    = SpawnStaticBox;
         api.SpawnStaticBoxRot = SpawnStaticBoxRot;
         api.SpawnDynamicBox   = SpawnDynamicBox;
-        api.DestroyBody       = DestroyBody;
-        api.engineVersion     = 2;
+        api.DestroyBody          = DestroyBody;
+        api.SetPlayerVelocity    = SetPlayerVelocity;
+        api.GetPlayerVelocity    = GetPlayerVelocity;
+        api.GetGravityY          = GetGravityY;
+        api.engineVersion        = 3;
 
         // Если появились новые поля в EngineAPI и Build() не заполнил их —
         // поймаем на этапе компиляции (static_assert на версию или
