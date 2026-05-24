@@ -9,7 +9,7 @@
 // В этом .cpp нет глобальных переменных с конструкторами — безопасно.
 
 #include "PhysicsState.h"
-#include "CarState.h"
+#include "scene/CarState.h"
 
 namespace RKeng::CarConstraint
 {
