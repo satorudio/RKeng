@@ -184,7 +184,7 @@ static int RKengMain()
 }
 
 #ifdef _WIN32
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+int main()
 {
     // 1. Открыть лог-файл сырым Win32 — до всего остального
     g_logFile = CreateFileA("rkeng.log",
