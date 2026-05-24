@@ -260,6 +260,7 @@ namespace RKeng::EngineAPI_Impl
         api.joltFree16     = reinterpret_cast<void*>(JPH::AlignedFree);
         api.joltFactory    = reinterpret_cast<void*>(JPH::Factory::sInstance);
         api.joltAssertFn   = reinterpret_cast<void*>(JPH::AssertFailed);
+        api.joltTrace      = reinterpret_cast<void*>(JPH::Trace);
 #endif
         return api;
     }

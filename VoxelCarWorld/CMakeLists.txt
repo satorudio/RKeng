@@ -43,12 +43,14 @@ if(EXISTS "${JOLT_DIR}/Jolt/Jolt.h")
         add_library(CP_Jolt STATIC IMPORTED)
         set_target_properties(CP_Jolt PROPERTIES
             IMPORTED_LOCATION "${JOLT_LIB}"
-            INTERFACE_COMPILE_DEFINITIONS "JPH_OBJECT_LAYER_BITS=16;JPH_ENABLE_ASSERTS=0")
+            INTERFACE_COMPILE_DEFINITIONS "JPH_OBJECT_LAYER_BITS=16")
         target_include_directories(CP_Jolt INTERFACE "${JOLT_DIR}" "${JOLT_DIR}/..")
     else()
         add_library(CP_Jolt INTERFACE)
         target_include_directories(CP_Jolt INTERFACE "${JOLT_DIR}")
-        target_compile_definitions(CP_Jolt INTERFACE JPH_OBJECT_LAYER_BITS=16 JPH_ENABLE_ASSERTS=0)
+        target_compile_definitions(CP_Jolt INTERFACE
+            JPH_OBJECT_LAYER_BITS=16 JPH_ENABLE_ASSERTS=0
+            JPH_PROFILE_ENABLED=0 JPH_DEBUG_RENDERER=0 JPH_OBJECT_STREAM=0)
     endif()
     set(JOLT_OK TRUE)
 else()

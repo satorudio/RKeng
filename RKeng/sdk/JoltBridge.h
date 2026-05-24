@@ -50,8 +50,14 @@ namespace RKeng
         // ── Assert handler — ПЕРВЫМ, до любых других вызовов Jolt ───────
         // Если поставить последним, assert внутри самого InitJoltFromEngine
         // (например, при нулевом Factory) уйдёт в дефолтный __debugbreak().
+#ifdef JPH_ENABLE_ASSERTS
         if (api.joltAssertFn)
             JPH::AssertFailed = reinterpret_cast<decltype(JPH::AssertFailed)>(api.joltAssertFn);
+#endif
+
+        // ── Trace handler — до аллокаторов, Jolt может трейснуть при инициализации ──
+        if (api.joltTrace)
+            JPH::Trace = reinterpret_cast<decltype(JPH::Trace)>(api.joltTrace);
 
         // ── Аллокаторы ───────────────────────────────────────────────────
         // Без них первый же JPH::Allocate() → nullptr → 0xc0000005

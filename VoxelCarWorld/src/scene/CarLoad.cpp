@@ -49,11 +49,15 @@ namespace RKeng::CarLoad
         bd.angularDamping = p.angularDamping;
         bd.friction       = p.friction;
 
+        if (api.LogInfo) api.LogInfo("CarLoad: calling SpawnDynamicBox");
         uint32_t rawID = api.SpawnDynamicBox(ph, bd);
+        if (api.LogInfo) api.LogInfo("CarLoad: SpawnDynamicBox returned");
         if (rawID == UINT32_MAX) { if (api.LogError) api.LogError("CarLoad: SpawnDynamicBox failed"); return; }
         car.bodyID = JPH::BodyID(rawID);
+        if (api.LogInfo) api.LogInfo("CarLoad: bodyID set");
 
         // ── 2. VehicleConstraintSettings ─────────────────────────────────
+        if (api.LogInfo) api.LogInfo("CarLoad: creating VehicleConstraintSettings");
         JPH::VehicleConstraintSettings vcs;
         vcs.mUp      = JPH::Vec3::sAxisY();
         vcs.mForward = JPH::Vec3::sAxisZ();
@@ -126,9 +130,12 @@ namespace RKeng::CarLoad
         vcs.mController = ctrl;
 
         // ── 5. VehicleConstraint ──────────────────────────────────────────
+        if (api.LogInfo) api.LogInfo("CarLoad: creating VehicleConstraint");
         {
             JPH::BodyLockWrite lock(ph.physicsSystem->GetBodyLockInterface(), car.bodyID);
+            if (api.LogInfo) api.LogInfo("CarLoad: lock acquired");
             JPH::Body& body = lock.GetBody();
+            if (api.LogInfo) api.LogInfo("CarLoad: body acquired");
             auto* vc = new JPH::VehicleConstraint(body, vcs);
             vc->SetEmbedded();
             car.vehicleConstraint = vc;

@@ -52,9 +52,13 @@ namespace
 
             // Машина
             RKeng::Vec3 spawnPos { 0.0f, 2.0f, 0.0f };
+            RKeng::Logger::Info("CarLoad: start");
             RKeng::CarLoad::Run(m_car, ph, spawnPos, api);
+            RKeng::Logger::Info("CarLoad: done");
             RKeng::CarConstraint::Register(m_car, ph);
+            RKeng::Logger::Info("CarConstraint: done");
             RKeng::CarMesh::Build(m_car);
+            RKeng::Logger::Info("CarMesh: done");
 
             // Первый кадр камеры
             SyncCamera(scene);

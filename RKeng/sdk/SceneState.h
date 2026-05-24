@@ -111,6 +111,7 @@ namespace RKeng
 #ifdef RK_JOLT_ENABLED
         JPH::BodyID floorBodyID;
         JPH::BodyID wallBodyIDs[4];
+        std::vector<JPH::BodyID> worldStaticBodyIDs; // все статики от WorldGen
 #endif
     };
 

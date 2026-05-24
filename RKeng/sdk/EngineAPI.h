@@ -89,5 +89,6 @@ namespace RKeng
         void* joltFree16     = nullptr;  // JPH::AlignedFree
         void* joltFactory    = nullptr;  // JPH::Factory::sInstance
         void* joltAssertFn   = nullptr;  // JPH::AssertFailed
+        void* joltTrace      = nullptr;  // JPH::Trace
     };
 }

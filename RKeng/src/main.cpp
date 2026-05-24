@@ -133,19 +133,48 @@ LONG WINAPI VehCrashHandler(EXCEPTION_POINTERS* ep)
 // ─────────────────────────────────────────────────────────────────────────────
 static void AttachConsoleOutput()
 {
-    // Консольное окно
-    if (!AttachConsole(ATTACH_PARENT_PROCESS))
+    // Определяем откуда запустили:
+    //   - из Sublime / cmd — stdout уже пайп, консоли нет (GetConsoleWindow()==NULL),
+    //     но вывод и так идёт в Sublime Output. Просто включаем ANSI и не трогаем ничего.
+    //   - двойной клик из Explorer — консоли тоже нет, нужно AllocConsole().
+    //   - из терминала — консоль есть, наследована.
+    //
+    // Способ различить Sublime/cmd-pipe от Explorer: проверяем тип handle stdout.
+    // Если это PIPE — мы внутри Sublime. Если INVALID/UNKNOWN — Explorer (нет окна).
+
+    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD hType = GetFileType(hStdout);
+    bool isPiped = (hType == FILE_TYPE_PIPE);
+
+    if (!isPiped)
+    {
+        // Запуск не из Sublime — открываем собственное окно консоли
         AllocConsole();
+        SetConsoleTitleA("RKeng — лог движка");
 
-    FILE* fp = nullptr;
-    freopen_s(&fp, "CONOUT$", "w", stdout);
-    freopen_s(&fp, "CONOUT$", "w", stderr);
-    freopen_s(&fp, "CONIN$",  "r", stdin);
-    std::cout.clear(); std::cerr.clear(); std::cin.clear();
+        FILE* fp = nullptr;
+        freopen_s(&fp, "CONOUT$", "w", stdout);
+        freopen_s(&fp, "CONOUT$", "w", stderr);
+        freopen_s(&fp, "CONIN$",  "r", stdin);
+        std::cout.clear(); std::cerr.clear(); std::cin.clear();
+        RawLog("[main] AllocConsole OK (standalone launch)\n");
+    }
+    else
+    {
+        // Запуск из Sublime / cmd-pipe — stdout уже подключён, просто используем его
+        RawLog("[main] stdout is pipe (Sublime/IDE launch), skipping AllocConsole\n");
+    }
 
-    // Дублируем в файл через tee-подход: оба handle открыты одновременно
-    // (g_logFile уже открыт до этого — не закрываем)
-    std::cout << "[main] console attached, log: rkeng.log\n" << std::flush;
+    // ANSI-цвета (Win10+) — для обоих случаев
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+    DWORD mode = 0;
+    if (GetConsoleMode(hOut, &mode))
+        SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    if (GetConsoleMode(hErr, &mode))
+        SetConsoleMode(hErr, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+    std::cout << "[RKeng] log: rkeng.log\n" << std::flush;
 }
 
 LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep)
