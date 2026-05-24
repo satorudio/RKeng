@@ -10,7 +10,7 @@
 //   В этом файле нет глобальных переменных → RTTI-объекты инициализируются
 //   безопасно при первом вызове функции (после InitJoltFromEngine).
 
-#include "CarConstraint.h"
+#include "scene/CarConstraint.h"
 
 #ifdef RK_JOLT_ENABLED
 #  include <Jolt/Jolt.h>
