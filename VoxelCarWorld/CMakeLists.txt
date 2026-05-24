@@ -113,11 +113,28 @@ target_compile_definitions(CubePhysicsScene PRIVATE
     GLM_ENABLE_EXPERIMENTAL
 )
 
+# ── GLFW ────────────────────────────────────────────────────────────────────
+# DLL-сцена вызывает glfwGetKey/glfwGetCursorPos напрямую — нужна линковка.
+find_library(GLFW_LIB glfw3 HINTS "${RKENG_LIB_DIR}" "${RKENG_LIB_DIR}/glfw/lib-mingw-w64" "C:/msys64/mingw64/lib")
+if(NOT GLFW_LIB)
+    find_package(glfw3 QUIET)
+    if(glfw3_FOUND)
+        set(GLFW_LIB glfw)
+    else()
+        message(WARNING "[CubePhysics] GLFW not found — input won't link")
+        set(GLFW_LIB "")
+    endif()
+endif()
+if(GLFW_LIB)
+    message(STATUS "[CubePhysics] GLFW: ${GLFW_LIB}")
+endif()
+
 target_link_libraries(CubePhysicsScene PRIVATE
     CP_GLM
     $<$<BOOL:${Vulkan_FOUND}>:Vulkan::Vulkan>
     $<$<BOOL:${JOLT_OK}>:CP_Jolt>
     $<$<BOOL:${RKENG_IMP_OK}>:RKengCore>
+    $<$<BOOL:${GLFW_LIB}>:${GLFW_LIB}>
 )
 
 if(WIN32)
