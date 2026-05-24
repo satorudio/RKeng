@@ -2,9 +2,13 @@
 #include "RKExport.h"
 #include "CarState.h"
 #include "../physics/PhysicsState.h"
+#include "../../engine_api/EngineAPI.h"
 
 namespace RKeng::CarLoad
 {
-    RK_API void Run(CarState& car, PhysicsState& ph, Vec3 spawnPos = {0.0f, 1.0f, 0.0f});
+    // api обязателен для SpawnDynamicBox. Передаётся из OnLoad.
+    RK_API void Run(CarState& car, PhysicsState& ph,
+                    Vec3 spawnPos = {0.0f, 1.0f, 0.0f},
+                    const EngineAPI* api = nullptr);
     RK_API void Destroy(CarState& car, PhysicsState& ph);
 }
