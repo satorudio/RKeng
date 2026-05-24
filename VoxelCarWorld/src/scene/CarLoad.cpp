@@ -278,6 +278,7 @@ namespace RKeng::CarLoad
         {
             ph.physicsSystem->RemoveStepListener(car.vehicleConstraint);
             ph.physicsSystem->RemoveConstraint(car.vehicleConstraint);
+            car.vehicleConstraint->Release();  // release Jolt ref before physicsSystem shutdown
         }
         if (!car.bodyID.IsInvalid())
         {
