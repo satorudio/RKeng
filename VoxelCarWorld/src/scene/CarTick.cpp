@@ -290,9 +290,9 @@ namespace RKeng::CarTick
         // Синхронизируем камеру сцены с позицией машины
         Vec3 camOffset = car.orientation * car.camLocalOffset;
         Vec3 camPos    = car.position + camOffset;
-        scene.player.worldPos.x = camPos.x;
-        scene.player.worldPos.y = camPos.y;
-        scene.player.worldPos.z = camPos.z;
+        scene.player.worldPos.world.x = camPos.x;
+        scene.player.worldPos.world.y = camPos.y;
+        scene.player.worldPos.world.z = camPos.z;
         scene.input.yaw   = car.camYaw;
         scene.input.pitch = car.camPitch;
         car.orientation = glm::quat(jRot.GetW(),
