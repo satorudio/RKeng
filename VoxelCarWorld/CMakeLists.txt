@@ -84,8 +84,8 @@ find_package(Vulkan QUIET)
 
 # ── Исходники ───────────────────────────────────────────────────────────────
 # Только наш главный файл — WorldGen, PlayerMove и прочее уже в RKengCore.dll
-set(SCENE_SOURCES
-    "${CMAKE_SOURCE_DIR}/src/OpenCarWorld.cpp"
+file(GLOB_RECURSE SCENE_SOURCES
+    "${CMAKE_SOURCE_DIR}/src/*.cpp"
 )
 
 message(STATUS "[CubePhysics] Sources:")
