@@ -5,7 +5,7 @@
 // VehicleConstraint/WheeledVehicleController создаются здесь — они не
 // трогают JPH::Factory::sInstance, поэтому безопасны в DLL.
 
-#include "CarState.h"
+#include "scene/CarState.h"
 #include "PhysicsState.h"
 #include "EngineAPI.h"
 
