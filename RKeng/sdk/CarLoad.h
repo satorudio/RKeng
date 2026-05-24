@@ -6,7 +6,7 @@
 
 namespace RKeng::CarLoad
 {
-    // api обязателен для создания физического тела через SpawnDynamicBox.
+    // api обязателен для SpawnDynamicBox. Передаётся из OnLoad.
     RK_API void Run(CarState& car, PhysicsState& ph,
                     Vec3 spawnPos = {0.0f, 1.0f, 0.0f},
                     const EngineAPI* api = nullptr);
