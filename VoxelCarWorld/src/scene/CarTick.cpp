@@ -5,8 +5,8 @@
 // • Синхронизирует позицию/вращение из Jolt в CarState
 // • Тикает осколки (debris) с гравитацией
 
-#include "CarTick.h"
-#include "WorldGen.h"
+#include "scene/CarTick.h"
+#include "scene/WorldGen.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
