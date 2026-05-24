@@ -1,117 +1,96 @@
-#include "scene/CarMesh.h"
-#include <glm/glm.hpp>
+// CarMesh.cpp — строит box-меш пикапа (один box = кузов, без вокселей).
+// Формат вершины: pos[3] + color[3] + normal[3] = 9 floats.
+
+#include "CarMesh.h"
 #include <array>
 
 namespace RKeng::CarMesh
 {
-    // Вспомогательные направления и нормали 6 граней куба
-    struct Face { int nx, ny, nz; int ax, ay, az; int bx, by, bz; };
+    struct Face { int nx,ny,nz; int ax,ay,az; int bx,by,bz; };
     static constexpr std::array<Face,6> FACES = {{
-        { 0, 0, 1,   1,0,0,  0,1,0 },  // +Z (перед)
-        { 0, 0,-1,  -1,0,0,  0,1,0 },  // -Z (зад)
-        { 1, 0, 0,   0,0,-1, 0,1,0 },  // +X (право)
-        {-1, 0, 0,   0,0, 1, 0,1,0 },  // -X (лево)
-        { 0, 1, 0,   1,0,0,  0,0,-1},  // +Y (верх)
-        { 0,-1, 0,   1,0,0,  0,0, 1 }, // -Y (низ)
+        { 0, 0, 1,  1,0,0,  0,1,0 },  // +Z
+        { 0, 0,-1, -1,0,0,  0,1,0 },  // -Z
+        { 1, 0, 0,  0,0,-1, 0,1,0 },  // +X
+        {-1, 0, 0,  0,0, 1, 0,1,0 },  // -X
+        { 0, 1, 0,  1,0,0,  0,0,-1},  // +Y
+        { 0,-1, 0,  1,0,0,  0,0, 1},  // -Y
     }};
 
-    static inline bool IsAlive(const CarState& car, int x, int y, int z)
+    static void PushFace(std::vector<float>& V, std::vector<uint32_t>& I,
+                         float cx,float cy,float cz,
+                         float hx,float hy,float hz,
+                         const Face& f, float r,float g,float b)
     {
-        if (x<0||x>=CAR_VOXELS_W) return false;
-        if (y<0||y>=CAR_VOXELS_H) return false;
-        if (z<0||z>=CAR_VOXELS_L) return false;
-        return car.voxels[x][y][z].alive;
-    }
+        float nx=(float)f.nx, ny=(float)f.ny, nz=(float)f.nz;
+        float ax=(float)f.ax*hx, ay=(float)f.ay*hy, az=(float)f.az*hz;
+        float bx=(float)f.bx*hx, by=(float)f.by*hy, bz=(float)f.bz*hz;
 
-    static void PushFace(std::vector<float>& verts, std::vector<uint32_t>& idxs,
-                         float cx, float cy, float cz, float s,
-                         const Face& f, const Vec3& col)
-    {
-        float hs = s * 0.5f;
-        float nx = (float)f.nx, ny = (float)f.ny, nz = (float)f.nz;
-        float ax = (float)f.ax * hs, ay = (float)f.ay * hs, az = (float)f.az * hs;
-        float bx = (float)f.bx * hs, by = (float)f.by * hs, bz = (float)f.bz * hs;
+        // Центр грани
+        float ox = cx + nx*hx;
+        float oy = cy + ny*hy;
+        float oz = cz + nz*hz;
 
-        // Смещаем центр грани
-        float ox = cx + nx * hs;
-        float oy = cy + ny * hs;
-        float oz = cz + nz * hs;
+        // Простое диффузное освещение по нормали
+        float light = 0.5f + 0.5f * (ny * 0.8f + nz * 0.15f + nx * 0.05f);
+        if (light < 0.3f) light = 0.3f;
+        if (light > 1.0f) light = 1.0f;
 
-        // 4 вершины грани: (±a ± b)
-        float positions[4][3] = {
-            { ox - ax - bx, oy - ay - by, oz - az - bz },
-            { ox + ax - bx, oy + ay - by, oz + az - bz },
-            { ox + ax + bx, oy + ay + by, oz + az + bz },
-            { ox - ax + bx, oy - ay + by, oz - az + bz },
+        float verts[4][3] = {
+            { ox-ax-bx, oy-ay-by, oz-az-bz },
+            { ox+ax-bx, oy+ay-by, oz+az-bz },
+            { ox+ax+bx, oy+ay+by, oz+az+bz },
+            { ox-ax+bx, oy-ay+by, oz-az+bz },
         };
 
-        // Небольшое затемнение по нормали для псевдо-освещения
-        float light = 0.4f + 0.6f * (nx*0.3f + ny*1.0f + nz*0.2f) * 0.5f + 0.5f;
-        light = glm::clamp(light, 0.3f, 1.0f);
-
-        uint32_t base = (uint32_t)(verts.size() / 9);
-        for (auto& p : positions)
-        {
-            verts.push_back(p[0]);
-            verts.push_back(p[1]);
-            verts.push_back(p[2]);
-            verts.push_back(nx);
-            verts.push_back(ny);
-            verts.push_back(nz);
-            verts.push_back(col.r * light);
-            verts.push_back(col.g * light);
-            verts.push_back(col.b * light);
+        uint32_t base = (uint32_t)(V.size()/9);
+        for (auto& p : verts) {
+            V.push_back(p[0]); V.push_back(p[1]); V.push_back(p[2]);
+            V.push_back(r*light); V.push_back(g*light); V.push_back(b*light);
+            V.push_back(nx); V.push_back(ny); V.push_back(nz);
         }
-        // 2 треугольника
-        idxs.push_back(base+0); idxs.push_back(base+1); idxs.push_back(base+2);
-        idxs.push_back(base+0); idxs.push_back(base+2); idxs.push_back(base+3);
+        I.push_back(base+0); I.push_back(base+1); I.push_back(base+2);
+        I.push_back(base+0); I.push_back(base+2); I.push_back(base+3);
     }
 
-    void Rebuild(CarState& car)
+    void Build(CarState& car)
     {
         car.meshVertices.clear();
         car.meshIndices.clear();
+        auto& V = car.meshVertices;
+        auto& I = car.meshIndices;
 
-        const float S = CAR_VOXEL_SIZE;
-        // Начало координат в центре низа машины
-        const float offX = -CAR_VOXELS_W * S * 0.5f;
-        const float offY =  0.0f;
-        const float offZ = -CAR_VOXELS_L * S * 0.5f;
+        const auto& p = car.params;
+        const float hx = p.halfW, hy = p.halfH, hz = p.halfL;
 
-        for (int x = 0; x < CAR_VOXELS_W; x++)
-        for (int y = 0; y < CAR_VOXELS_H; y++)
-        for (int z = 0; z < CAR_VOXELS_L; z++)
+        // Основной кузов — тёмно-синий
+        for (const auto& f : FACES)
+            PushFace(V,I, 0,0,0, hx,hy,hz, f, 0.10f,0.20f,0.45f);
+
+        // Крыша — немного меньше и выше
         {
-            const auto& v = car.voxels[x][y][z];
-            if (!v.alive) continue;
-
-            float cx = offX + x * S + S * 0.5f;
-            float cy = offY + y * S + S * 0.5f;
-            float cz = offZ + z * S + S * 0.5f;
-
-            // Немного темнее если здоровье низкое (повреждён)
-            Vec3 col = v.color * (0.5f + 0.5f * v.health);
-
-            for (int fi = 0; fi < 6; fi++)
-            {
-                const Face& f = FACES[fi];
-                // Скрытые грани не рисуем (frustum culling на уровне вокселей)
-                int nx = x + f.nx, ny = y + f.ny, nz = z + f.nz;
-                if (IsAlive(car, nx, ny, nz)) continue;
-                PushFace(car.meshVertices, car.meshIndices, cx, cy, cz, S, f, col);
-            }
+            float rh = hy * 0.6f, rw = hx * 0.8f, rl = hz * 0.55f;
+            float ry = hy + rh;
+            for (const auto& f : FACES)
+                PushFace(V,I, 0,ry,hz*0.05f, rw,rh,rl, f, 0.07f,0.14f,0.30f);
         }
 
-        // Дебрис — добавляем к тому же мешу
-        for (const auto& d : car.debris)
+        // 4 колеса — серые цилиндры-боксы
         {
-            if (d.dead) continue;
-            // Дебрис — просто один кубик
-            float cx = d.pos.x - car.position.x; // локально
-            float cy = d.pos.y - car.position.y;
-            float cz = d.pos.z - car.position.z;
-            for (int fi = 0; fi < 6; fi++)
-                PushFace(car.meshVertices, car.meshIndices, cx, cy, cz, d.size, FACES[fi], d.color);
+            float wr = p.wheelRadius, ww = p.wheelWidth * 0.8f;
+            float wxOff = hx + ww + 0.01f;
+            float wzF   =  hz * 0.70f;
+            float wzR   = -hz * 0.70f;
+            float wyOff = -(hy + p.suspMaxLen * 0.5f);
+
+            float positions[4][3] = {
+                {-wxOff, wyOff, wzF},
+                { wxOff, wyOff, wzF},
+                {-wxOff, wyOff, wzR},
+                { wxOff, wyOff, wzR},
+            };
+            for (auto& wp : positions)
+                for (const auto& f : FACES)
+                    PushFace(V,I, wp[0],wp[1],wp[2], ww,wr,wr, f, 0.15f,0.15f,0.15f);
         }
 
         car.meshDirty = true;
