@@ -286,6 +286,15 @@ namespace RKeng::CarTick
         JPH::Vec3 jVel = ph.bodyInterface->GetLinearVelocity(car.bodyID);
 
         car.position    = { jPos.GetX(), jPos.GetY(), jPos.GetZ() };
+
+        // Синхронизируем камеру сцены с позицией машины
+        Vec3 camOffset = car.orientation * car.camLocalOffset;
+        Vec3 camPos    = car.position + camOffset;
+        scene.player.worldPos.x = camPos.x;
+        scene.player.worldPos.y = camPos.y;
+        scene.player.worldPos.z = camPos.z;
+        scene.input.yaw   = car.camYaw;
+        scene.input.pitch = car.camPitch;
         car.orientation = glm::quat(jRot.GetW(),
                                     jRot.GetX(), jRot.GetY(), jRot.GetZ());
         car.velocity    = { jVel.GetX(), jVel.GetY(), jVel.GetZ() };
