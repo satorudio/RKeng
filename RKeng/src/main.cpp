@@ -202,7 +202,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     RawLog("[main] console attached\n");
 
     // 4. Всё остальное
+    RawLog("[main] before RKengMain\n");
     int result = RKengMain();
+    RawLog("[main] after RKengMain\n");
 
     RawLog("[main] WinMain exit\n");
     if (g_logFile != INVALID_HANDLE_VALUE)
