@@ -13,4 +13,9 @@ namespace RKeng::CarTick
     void Run(CarState& car, PhysicsState& ph, SceneState& scene,
              float dt,
              const std::vector<WorldGen::MudZone>& mudZones = {});
+
+    // Регистрирует contact listener для детекции ударов кузова.
+    // Вызывать после CarLoad::Run и CarConstraint::Register.
+    // Заглушка — реализация добавляется по мере необходимости.
+    void RegisterContactCallback(CarState& car, PhysicsState& ph);
 }
