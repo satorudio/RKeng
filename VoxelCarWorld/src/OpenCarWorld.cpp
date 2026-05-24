@@ -79,6 +79,17 @@ namespace
             // уже в первый кадр.
             SyncMeshToScene(scene);
 
+            // Камера для первого кадра — чтобы не было серого экрана до первого тика
+            {
+                RKeng::Vec3 camOffset = m_car.orientation * m_car.camLocalOffset;
+                RKeng::Vec3 camPos    = m_car.position + camOffset;
+                scene.player.worldPos.x = camPos.x;
+                scene.player.worldPos.y = camPos.y;
+                scene.player.worldPos.z = camPos.z;
+                scene.input.yaw   = m_car.camYaw;
+                scene.input.pitch = m_car.camPitch;
+            }
+
             RKeng::Logger::Info("CarScene: машина заспавнена");
             RKeng::Logger::Info("CarScene: OnLoad — готово");
         }
