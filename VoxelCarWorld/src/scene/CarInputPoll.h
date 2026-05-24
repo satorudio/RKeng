@@ -1,7 +1,7 @@
 #pragma once
 // CarInputPoll.h — GLFW-опрос управления RAM 2500 Power Wagon.
 
-#include "CarState.h"
+#include "scene/CarState.h"
 #include "SceneState.h"
 
 namespace RKeng::CarInputPoll
