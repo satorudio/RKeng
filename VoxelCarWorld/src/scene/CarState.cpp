@@ -1,7 +1,1 @@
-#include "scene/CarState.h"
-
-namespace RKeng
-{
-    static CarState s_car;
-    CarState& GetCarState() { return s_car; }
-}
+// CarState.cpp — пусто: стейт хранится в OpenCarWorld.cpp как поле класса.
