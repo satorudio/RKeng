@@ -15,13 +15,13 @@
 #include "JoltBridge.h"
 #include "SceneState.h"
 #include "PhysicsState.h"
-#include "WorldGen.h"
 #include "Logger.h"
 #ifdef RK_JOLT_ENABLED
 #include <Jolt/RegisterTypes.h>
 #endif
 
 // ── 3. DLL-специфичные заголовки сцены ───────────────────────────────────────
+#include "scene/WorldGen.h"
 #include "scene/CarLoad.h"
 #include "scene/CarTick.h"
 #include "scene/CarInputPoll.h"
