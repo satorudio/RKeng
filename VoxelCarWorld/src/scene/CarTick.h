@@ -1,7 +1,7 @@
 #pragma once
 // CarTick.h — физический тик машины, грязь, дебрис.
 
-#include "CarState.h"
+#include "scene/CarState.h"
 #include "PhysicsState.h"
 #include "SceneState.h"
 #include "WorldGen.h"
