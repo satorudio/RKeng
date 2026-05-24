@@ -22,7 +22,7 @@
 
 namespace RKeng
 {
-    static ScenePluginLoader* s_SceneLoader = nullptr;
+    ScenePluginLoader* s_SceneLoader = nullptr;
     ScenePluginLoader& GetSceneLoader() { return *s_SceneLoader; }
 }
 
