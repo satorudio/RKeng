@@ -6,7 +6,7 @@
 //   • BoxShapeSettings — НЕ вызываем! (требует Factory)
 //   • JoltAssert.cpp — НЕ включаем (Jolt v5 сам определяет JPH::AssertFailed)
 
-#include "CarLoad.h"
+#include "scene/CarLoad.h"
 
 #ifdef RK_JOLT_ENABLED
 #  include <Jolt/Jolt.h>
