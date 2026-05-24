@@ -5,7 +5,7 @@
 //   • Никакого #include <Jolt/...> — не нужен, типы только из PhysicsState
 //   • Линковка только через libRKengCore.dll.a
 
-#include "WorldGen.h"
+#include "scene/WorldGen.h"
 #include "VoxelWall.h"
 
 #include <cmath>
