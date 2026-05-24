@@ -67,7 +67,7 @@ namespace
             // Машина стартует чуть над полом по центру карты.
             // CarLoad::Run создаёт физическое тело + VehicleConstraint.
             RKeng::Vec3 spawnPos { 0.0f, 1.5f, 0.0f };
-            RKeng::CarLoad::Run(m_car, ph, spawnPos);
+            RKeng::CarLoad::Run(m_car, ph, spawnPos, &api);
 
             // Регистрируем коллбек для детекции ударов (урон по вокселям).
             RKeng::CarTick::RegisterContactCallback(m_car, ph);
