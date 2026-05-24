@@ -340,4 +340,14 @@ namespace RKeng::WorldGen
         return result;
     }
 
+    // ── Destroy ──────────────────────────────────────────────────────────
+    // На данный момент тела мира хранятся в PhysicsSystem и удаляются
+    // при его Shutdown автоматически. Явный трекинг bodyID'ов мира не реализован.
+    // TODO: добавить std::vector<uint32_t> worldBodyIDs в WorldData и удалять их.
+    void Destroy(SceneState& scene, PhysicsState& /*ph*/)
+    {
+        // Очищаем воксельные стены из SceneState
+        scene.voxelWalls.clear();
+    }
+
 }  // namespace RKeng::WorldGen
