@@ -32,8 +32,11 @@ namespace RKeng::CarConstraint
     {
 #ifdef RK_JOLT_ENABLED
         if (!car.vehicleConstraint || !ph.physicsSystem) return;
+        // Порядок строго по правилу 6: RemoveStepListener → RemoveConstraint → Release
         ph.physicsSystem->RemoveStepListener(car.vehicleConstraint);
         ph.physicsSystem->RemoveConstraint(car.vehicleConstraint);
+        car.vehicleConstraint->Release();
+        car.vehicleConstraint = nullptr;
 #endif
     }
 }
