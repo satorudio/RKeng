@@ -6,8 +6,10 @@
 #ifdef RK_JOLT_ENABLED
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyID.h>
-#include <Jolt/Physics/Vehicle/VehicleConstraint.h>
-#include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
+// VehicleConstraint.h и WheeledVehicleController.h НЕ включаем здесь:
+// содержат JPH_IMPLEMENT_RTTI_VIRTUAL → краш при LoadLibraryA до DllMain.
+// Включай только в .cpp после InitJoltFromEngine().
+namespace JPH { class VehicleConstraint; template<class T> class Ref; }
 #endif
 
 namespace RKeng
