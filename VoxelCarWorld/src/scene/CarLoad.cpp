@@ -269,6 +269,8 @@ namespace RKeng::CarLoad
     }
 
     // ── Destroy ───────────────────────────────────────────────────────────
+    // ВАЖНО: вызывать ПОСЛЕ CarConstraint::Unregister (который делает Remove*).
+    // Здесь только Release() указателя и уничтожение тела.
     void Destroy(CarState& car, PhysicsState& ph)
     {
 #ifdef RK_JOLT_ENABLED
@@ -276,16 +278,17 @@ namespace RKeng::CarLoad
 
         if (car.vehicleConstraint)
         {
-            ph.physicsSystem->RemoveStepListener(car.vehicleConstraint);
-            ph.physicsSystem->RemoveConstraint(car.vehicleConstraint);
-            car.vehicleConstraint->Release();  // release Jolt ref before physicsSystem shutdown
+            // НЕ вызываем RemoveStepListener/RemoveConstraint здесь —
+            // это делает CarConstraint::Unregister перед вызовом Destroy.
+            // Двойной Remove → JPH_ASSERT.
+            car.vehicleConstraint->Release();  // освобождаем Jolt ref-count
+            car.vehicleConstraint = nullptr;
         }
         if (!car.bodyID.IsInvalid())
         {
             ph.bodyInterface->RemoveBody(car.bodyID);
             ph.bodyInterface->DestroyBody(car.bodyID);
         }
-        car.vehicleConstraint = nullptr;
 #else
         (void)ph;
 #endif
