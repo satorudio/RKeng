@@ -13,7 +13,7 @@
 //   Движение мыши (ПКМ зажата в движке) — поворот камеры через mouseDeltaX/Y
 //   Q / E        — зум камеры (через windowHandle если доступен, иначе пропускаем)
 
-#include "CarInputPoll.h"
+#include "scene/CarInputPoll.h"
 #include <glm/glm.hpp>
 #include <cmath>
 
