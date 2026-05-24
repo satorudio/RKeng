@@ -54,4 +54,9 @@ namespace RKeng::WorldGen
     WorldData Generate(SceneState& scene, PhysicsState& ph,
                        const EngineAPI& api, const WorldConfig& cfg = {});
 
+    // Освобождает статические тела мира (вызывается в OnUnload).
+    // Сейчас тела принадлежат PhysicsSystem — при Shutdown они удалятся сами,
+    // но явный Destroy нужен для корректного Reload без перезапуска движка.
+    void Destroy(SceneState& scene, PhysicsState& ph);
+
 }  // namespace RKeng::WorldGen
