@@ -4,7 +4,7 @@
 #include "scene/CarState.h"
 #include "PhysicsState.h"
 #include "SceneState.h"
-#include "WorldGen.h"
+#include "scene/WorldGen.h"
 
 namespace RKeng::CarTick
 {
