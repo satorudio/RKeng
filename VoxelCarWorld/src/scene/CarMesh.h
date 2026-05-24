@@ -1,8 +1,9 @@
 #pragma once
-#include "scene/CarState.h"
+#include "CarState.h"
 
 namespace RKeng::CarMesh
 {
-    // Перестроить меш из живых вокселей + дебрис
-    void Rebuild(CarState& car);
+    // Строит статичный box-меш по размерам params.
+    // Вызывается один раз в OnLoad — меш не меняется.
+    void Build(CarState& car);
 }
