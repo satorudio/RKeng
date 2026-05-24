@@ -13,7 +13,7 @@
 
 namespace RKeng::CarLoad
 {
-    void Run(CarState& car, PhysicsState& ph, Vec3 spawnPos)
+    void Run(CarState& car, PhysicsState& ph, Vec3 spawnPos, const EngineAPI* /*api*/)
     {
         // Инициализируем вокселы кузова
         for (int x = 0; x < CAR_VOXELS_W; x++)
