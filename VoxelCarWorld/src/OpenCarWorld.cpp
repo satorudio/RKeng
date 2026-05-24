@@ -22,6 +22,7 @@
 #include "CarInputPoll.h"
 #include "CarMesh.h"
 #include "Logger.h"
+#include "scene/CarConstraint.h"
 #ifdef RK_JOLT_ENABLED
 #include <Jolt/RegisterTypes.h>
 #endif
@@ -54,13 +55,14 @@ namespace
             // WorldGen создаёт пол, барьеры, воксельные стены, трамплины.
             // Конфиг настроен под гоночный полигон: просторный, много трамплинов.
             RKeng::WorldGen::WorldConfig worldCfg;
-            worldCfg.worldSize      = 250.0f;
+            worldCfg.worldHalfSize  = 250.0f;
             worldCfg.numVoxelWalls  = 20;    // меньше стен — удобнее ездить
-            worldCfg.numSolidBlocks = 15;    // бетонные блоки-препятствия
+            worldCfg.numRocks       = 15;    // бетонные блоки-препятствия
             worldCfg.numRamps       = 12;    // побольше трамплинов
             worldCfg.seed           = 1337;
 
-            RKeng::WorldGen::Generate(scene, ph, worldCfg);
+            // ВАЖНО: передаём api — WorldGen спавнит тела через него
+            m_worldData = RKeng::WorldGen::Generate(scene, ph, api, worldCfg);
             RKeng::Logger::Info("CarScene: мир сгенерирован");
 
             // ── ШАГ 3: Спавн машины ─────────────────────────────────────────
@@ -68,6 +70,11 @@ namespace
             // CarLoad::Run создаёт физическое тело + VehicleConstraint.
             RKeng::Vec3 spawnPos { 0.0f, 1.5f, 0.0f };
             RKeng::CarLoad::Run(m_car, ph, spawnPos, &api);
+
+            // ── ШАГ 4: Регистрация VehicleConstraint в PhysicsSystem ────────
+            // CarLoad::Run создаёт constraint, но НЕ регистрирует его.
+            // Без этого шага Jolt не будет тикать физику машины.
+            RKeng::CarConstraint::Register(m_car, ph);
 
             // Регистрируем коллбек для детекции ударов (урон по вокселям).
             RKeng::CarTick::RegisterContactCallback(m_car, ph);
@@ -103,7 +110,7 @@ namespace
             RKeng::CarInputPoll::Run(m_car, scene, dt);
 
             // 2. Обновляем физику машины: двигатель, подвеска, урон, дебрис
-            RKeng::CarTick::Run(m_car, ph, scene, dt);
+            RKeng::CarTick::Run(m_car, ph, scene, dt, m_worldData.mudZones);
 
             // 3. Перестраиваем меш, если вокселы изменились (удар, взрыв)
             if (m_car.meshDirty)
@@ -121,6 +128,10 @@ namespace
                       RKeng::PhysicsState& ph) override
         {
             RKeng::Logger::Info("CarScene: OnUnload");
+
+            // Сначала убираем VehicleConstraint из PhysicsSystem,
+            // затем CarLoad::Destroy вызывает Release() и удаляет тело.
+            RKeng::CarConstraint::Unregister(m_car, ph);
 
             // Очищаем физическое тело и VehicleConstraint
             RKeng::CarLoad::Destroy(m_car, ph);
@@ -159,6 +170,9 @@ namespace
 
         // ── Состояние машины (единственный экземпляр на сцену) ──────────────
         RKeng::CarState m_car;
+
+        // ── Данные мира — нужны CarTick для зон грязи ───────────────────────
+        RKeng::WorldGen::WorldData m_worldData;
     };
 
 } // anonymous namespace
