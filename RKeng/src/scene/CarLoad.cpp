@@ -226,9 +226,10 @@ namespace RKeng::CarLoad
         if (!car.initialized || !ph.initialized) return;
         ph.physicsSystem->RemoveStepListener(car.vehicleConstraint);
         ph.physicsSystem->RemoveConstraint(car.vehicleConstraint);
+        car.vehicleConstraint->Release();  // release Jolt ref before physicsSystem shutdown
+        car.vehicleConstraint = nullptr;
         ph.bodyInterface->RemoveBody(car.bodyID);
         ph.bodyInterface->DestroyBody(car.bodyID);
-        car.vehicleConstraint = nullptr;
 #endif
         car.initialized = false;
     }
