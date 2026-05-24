@@ -17,12 +17,7 @@
 #include <glm/glm.hpp>
 #include <cmath>
 
-// GLFW нужен только для Q/E зума — берём windowHandle из SceneState.
-// Заголовок подтягивается через forward decl в SceneState.h,
-// реальный glfw3.h нужен только здесь для glfwGetKey.
-#ifdef RK_JOLT_ENABLED
-#include <GLFW/glfw3.h>
-#endif
+// Ввод полностью через SceneState — GLFW не используется.
 
 namespace RKeng::CarInputPoll
 {
@@ -80,16 +75,7 @@ namespace RKeng::CarInputPoll
         s_camYaw   = si.yaw;
         s_camPitch = glm::clamp(si.pitch, -75.0f, 35.0f);
 
-        // ── Зум Q/E — через windowHandle (опционально) ───────────────────
-#ifdef RK_JOLT_ENABLED
-        if (GLFWwindow* win = scene.windowHandle)
-        {
-            if (glfwGetKey(win, GLFW_KEY_Q) == GLFW_PRESS)
-                s_camDist = glm::max(3.0f,  s_camDist - 8.0f * dt);
-            if (glfwGetKey(win, GLFW_KEY_E) == GLFW_PRESS)
-                s_camDist = glm::min(35.0f, s_camDist + 8.0f * dt);
-        }
-#endif
+        // ── Зум — TODO: добавить в InputState движка (Q/E или scroll) ──────
 
         // Записываем в CarState
         car.camYaw         = s_camYaw;
