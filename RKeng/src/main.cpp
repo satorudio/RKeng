@@ -203,7 +203,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
     // 4. Всё остальное
     RawLog("[main] before RKengMain\n");
-    int result = RKengMain();
+    int result = -1;
+    __try {
+        result = RKengMain();
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        DWORD code = GetExceptionCode();
+        char buf[64];
+        wsprintfA(buf, "[main] SEH crash in RKengMain: 0x%08X\n", code);
+        RawLog(buf);
+    }
     RawLog("[main] after RKengMain\n");
 
     RawLog("[main] WinMain exit\n");
