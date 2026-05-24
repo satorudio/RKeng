@@ -36,3 +36,6 @@ Thumbs.db
 
 # ── GLM docs (20MB html, не нужны в репо) ───────────────────
 RKeng/lib/glm/doc/
+
+# ── SDK (генерируется FlattenSDK при сборке) ─────────────────────
+RKeng/sdk/
