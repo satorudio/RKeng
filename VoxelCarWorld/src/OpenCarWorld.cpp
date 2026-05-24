@@ -83,9 +83,9 @@ namespace
             {
                 RKeng::Vec3 camOffset = m_car.orientation * m_car.camLocalOffset;
                 RKeng::Vec3 camPos    = m_car.position + camOffset;
-                scene.player.worldPos.x = camPos.x;
-                scene.player.worldPos.y = camPos.y;
-                scene.player.worldPos.z = camPos.z;
+                scene.player.worldPos.world.x = camPos.x;
+                scene.player.worldPos.world.y = camPos.y;
+                scene.player.worldPos.world.z = camPos.z;
                 scene.input.yaw   = m_car.camYaw;
                 scene.input.pitch = m_car.camPitch;
             }
