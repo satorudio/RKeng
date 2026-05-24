@@ -313,4 +313,14 @@ namespace RKeng::CarTick
 #endif
     }
 
+    // ── RegisterContactCallback ───────────────────────────────────────────
+    // Регистрирует обработчик столкновений для кузова машины.
+    // Полная реализация — через RKContactListener в sdk/ — планируется.
+    // Пока заглушка: функция существует, но ничего не делает.
+    void RegisterContactCallback(CarState& /*car*/, PhysicsState& /*ph*/)
+    {
+        // TODO: зарегистрировать RKContactListener через PhysicsSystem::SetContactListener
+        // для детекции ударов → ApplyImpact().
+    }
+
 }  // namespace RKeng::CarTick
