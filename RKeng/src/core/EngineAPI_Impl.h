@@ -9,15 +9,20 @@
 #ifdef RK_JOLT_ENABLED
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyLockInterface.h>
+#include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Vehicle/VehicleConstraint.h>
+#include <Jolt/Physics/Vehicle/VehicleCollisionTester.h>
+#include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/Memory.h>
 #include <Jolt/Core/IssueReporting.h>
-#include <Jolt/Physics/Character/CharacterVirtual.h>
-#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <cmath>
+#include <string>
 #endif
 
 namespace RKeng::EngineAPI_Impl
@@ -50,7 +55,7 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
-    // ── SpawnStaticBoxRot — статик с произвольной ротацией ───────────────────
+    // ── SpawnStaticBoxRot ─────────────────────────────────────────────────────
     static uint32_t SpawnStaticBoxRot(PhysicsState& ph, const RK_StaticBox& box)
     {
 #ifdef RK_JOLT_ENABLED
@@ -79,9 +84,7 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
-    // ── SpawnDynamicBox — динамическое тело (кузов машины) ───────────────────
-    // BoxShapeSettings::Create() вызывается здесь, в RKengCore — Factory
-    // гарантированно инициализирован. DLL-плагину линковать Jolt не нужно.
+    // ── SpawnDynamicBox ───────────────────────────────────────────────────────
     static uint32_t SpawnDynamicBox(PhysicsState& ph, const RK_DynamicBox& box)
     {
 #ifdef RK_JOLT_ENABLED
@@ -112,8 +115,7 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
-
-    // ── GetBodyTransform — позиция/ротация тела без BodyInterface.h в DLL ──
+    // ── GetBodyTransform ──────────────────────────────────────────────────────
     static bool GetBodyTransform(PhysicsState& ph, uint32_t bodyID,
         float& px, float& py, float& pz,
         float& qx, float& qy, float& qz, float& qw)
@@ -134,9 +136,7 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
-    // ── Персонаж: velocity bridge — безопасная альтернатива CharacterVirtual.h в DLL ──
-    // JPH_IMPLEMENT_RTTI_VIRTUAL в CharacterVirtual.h создаёт глобальные объекты
-    // при загрузке DLL → краш до DllMain. DLL использует эти три API-функции.
+    // ── Персонаж ──────────────────────────────────────────────────────────────
     static void SetPlayerVelocity(PhysicsState& ph, float vx, float vy, float vz)
     {
 #ifdef RK_JOLT_ENABLED
@@ -182,15 +182,11 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
-
-    // ── CreateCharacter — создаёт CharacterVirtual по запросу DLL-сцены ─────
-    // DLL не включает CharacterVirtual.h (JPH_IMPLEMENT_RTTI_VIRTUAL → краш).
-    // Вызывать после SpawnStaticBox + OptimizeBroadPhase.
     static bool CreateCharacter(PhysicsState& ph, const RK_CharacterDesc& desc)
     {
 #ifdef RK_JOLT_ENABLED
         if (!ph.initialized || !ph.physicsSystem) return false;
-        if (ph.character) return true; // уже создан
+        if (ph.character) return true;
 
         JPH::CharacterVirtualSettings cs;
         cs.mMaxSlopeAngle             = JPH::DegreesToRadians(desc.maxSlopeAngleDeg);
@@ -235,6 +231,245 @@ namespace RKeng::EngineAPI_Impl
 #endif
     }
 
+    // ── Транспорт (версия API 6) ──────────────────────────────────────────────
+    // VehicleConstraint создаётся здесь, в движке, где Factory гарантирован.
+    // DLL не линкует Jolt и не включает VehicleConstraint.h.
+
+#ifdef RK_JOLT_ENABLED
+    static constexpr uint32_t MAX_VEHICLES = 16;
+
+    struct VehicleEntry
+    {
+        JPH::VehicleConstraint* constraint = nullptr;
+        JPH::BodyID             bodyID;
+    };
+
+    static VehicleEntry s_vehicles[MAX_VEHICLES];
+
+    static JPH::LinearCurve MakeFrictionCurve(float peak)
+    {
+        JPH::LinearCurve c;
+        c.AddPoint(0.00f, 0.0f);
+        c.AddPoint(0.06f, peak);
+        c.AddPoint(0.20f, peak * 0.85f);
+        c.AddPoint(1.00f, peak * 0.70f);
+        return c;
+    }
+#endif
+
+    static RK_VehicleHandle SpawnVehicle(PhysicsState& ph, const RK_VehicleDesc& d)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (!ph.initialized || !ph.bodyInterface || !ph.physicsSystem) {
+            Logger::Error("[SpawnVehicle] PhysicsState not ready");
+            return RK_INVALID_VEHICLE;
+        }
+
+        // 1. Кузов
+        JPH::BoxShapeSettings bss(JPH::Vec3(d.halfW, d.halfH, d.halfL));
+        bss.SetEmbedded();
+        auto bsResult = bss.Create();
+        if (bsResult.HasError()) {
+            Logger::Error("[SpawnVehicle] BoxShape error");
+            return RK_INVALID_VEHICLE;
+        }
+        JPH::BodyCreationSettings bcs(
+            bsResult.Get(),
+            JPH::RVec3(d.spawnX, d.spawnY, d.spawnZ),
+            JPH::Quat::sIdentity(),
+            JPH::EMotionType::Dynamic,
+            PhysLayers::DYNAMIC);
+        bcs.mOverrideMassProperties       = JPH::EOverrideMassProperties::CalculateInertia;
+        bcs.mMassPropertiesOverride.mMass = d.mass;
+        bcs.mLinearDamping                = d.linearDamping;
+        bcs.mAngularDamping               = d.angularDamping;
+        bcs.mFriction                     = d.bodyFriction;
+        JPH::BodyID bodyID = ph.bodyInterface->CreateAndAddBody(
+            bcs, JPH::EActivation::Activate);
+        if (bodyID.IsInvalid()) {
+            Logger::Error("[SpawnVehicle] CreateAndAddBody failed");
+            return RK_INVALID_VEHICLE;
+        }
+
+        // 2. VehicleConstraintSettings
+        JPH::VehicleConstraintSettings vcs;
+        vcs.mUp      = JPH::Vec3::sAxisY();
+        vcs.mForward = JPH::Vec3::sAxisZ();
+
+        // 3. Колёса
+        const float wX  = d.halfW + d.wheelWidth * 0.4f + 0.02f;
+        const float wY  = -(d.halfH + d.suspMaxLen * 0.6f);
+        const float wZF =  d.halfL * 0.70f;
+        const float wZR = -d.halfL * 0.70f;
+
+        JPH::WheelSettingsWV tmpl;
+        tmpl.mRadius              = d.wheelRadius;
+        tmpl.mWidth               = d.wheelWidth;
+        tmpl.mSuspensionMinLength = d.suspMinLen;
+        tmpl.mSuspensionMaxLength = d.suspMaxLen;
+        tmpl.mSuspensionSpring.mFrequency = d.suspFreq;
+        tmpl.mSuspensionSpring.mDamping   = d.suspDamping;
+        tmpl.mSuspensionDirection = JPH::Vec3(0, -1, 0);
+        tmpl.mSteeringAxis        = JPH::Vec3(0,  1, 0);
+        tmpl.mWheelUp             = JPH::Vec3(0,  1, 0);
+        tmpl.mWheelForward        = JPH::Vec3(0,  0, 1);
+
+        auto fLon = MakeFrictionCurve(d.frontFriction);
+        auto rLon = MakeFrictionCurve(d.rearFriction);
+        auto fLat = MakeFrictionCurve(d.frontFriction);
+        auto rLat = MakeFrictionCurve(d.rearFriction);
+
+        auto MakeWheel = [&](float wx, float wz, float steerDeg,
+                             const JPH::LinearCurve& lon,
+                             const JPH::LinearCurve& lat) -> JPH::WheelSettingsWV*
+        {
+            auto* w = new JPH::WheelSettingsWV(tmpl);
+            w->SetEmbedded();
+            w->mPosition             = JPH::Vec3(wx, wY, wz);
+            w->mMaxSteerAngle        = JPH::DegreesToRadians(steerDeg);
+            w->mLongitudinalFriction = lon;
+            w->mLateralFriction      = lat;
+            return w;
+        };
+
+        vcs.mWheels = {
+            MakeWheel(-wX, wZF, d.maxSteerDeg, fLon, fLat),  // FL
+            MakeWheel( wX, wZF, d.maxSteerDeg, fLon, fLat),  // FR
+            MakeWheel(-wX, wZR, 0.f,           rLon, rLat),  // RL
+            MakeWheel( wX, wZR, 0.f,           rLon, rLat),  // RR
+        };
+
+        // 4. Контроллер
+        auto* ctrl = new JPH::WheeledVehicleControllerSettings;
+        ctrl->SetEmbedded();
+        ctrl->mEngine.mMaxTorque = d.maxTorque;
+        ctrl->mEngine.mMaxRPM    = d.maxRPM;
+        ctrl->mEngine.mInertia   = d.engineInertia;
+        ctrl->mTransmission.mMode = JPH::ETransmissionMode::Auto;
+        ctrl->mTransmission.mGearRatios        = { 4.0f, 2.5f, 1.7f, 1.2f, 1.0f, 0.8f };
+        ctrl->mTransmission.mReverseGearRatios = { -3.5f };
+        ctrl->mTransmission.mSwitchTime = 0.3f;
+
+        JPH::VehicleDifferentialSettings diff;
+        diff.mLeftWheel = 2; diff.mRightWheel = 3;
+        diff.mLimitedSlipRatio = 1.4f;
+        ctrl->mDifferentials.push_back(diff);
+
+        JPH::VehicleAntiRollBar arF; arF.mLeftWheel=0; arF.mRightWheel=1; arF.mStiffness=d.antiRollFront;
+        JPH::VehicleAntiRollBar arR; arR.mLeftWheel=2; arR.mRightWheel=3; arR.mStiffness=d.antiRollRear;
+        vcs.mAntiRollBars = { arF, arR };
+        vcs.mController = ctrl;
+
+        // 5. VehicleConstraint — создаётся внутри движка, Factory гарантирован
+        // BodyLockRead берём только чтобы получить Body&.
+        // VehicleConstraint создаём после освобождения лока —
+        // его конструктор сам берёт внутренние локи.
+        JPH::Body* bodyPtr = nullptr;
+        {
+            JPH::BodyLockRead lock(ph.physicsSystem->GetBodyLockInterface(), bodyID);
+            if (!lock.Succeeded()) {
+                Logger::Error("[SpawnVehicle] BodyLockRead failed — invalid bodyID");
+                ph.bodyInterface->RemoveBody(bodyID);
+                ph.bodyInterface->DestroyBody(bodyID);
+                return RK_INVALID_VEHICLE;
+            }
+            bodyPtr = const_cast<JPH::Body*>(&lock.GetBody());
+        } // лок отпущен; bodyPtr остаётся валидным (тело живёт в PhysicsSystem)
+
+        auto* vc = new JPH::VehicleConstraint(*bodyPtr, vcs);
+        vc->SetEmbedded();
+
+        auto* tester = new JPH::VehicleCollisionTesterRay(PhysLayers::DYNAMIC);
+        tester->SetEmbedded();
+        vc->SetVehicleCollisionTester(tester);
+
+        ph.physicsSystem->AddConstraint(vc);
+        ph.physicsSystem->AddStepListener(vc);
+
+        // 6. Регистрация
+        for (uint32_t i = 0; i < MAX_VEHICLES; ++i) {
+            if (s_vehicles[i].constraint == nullptr) {
+                s_vehicles[i] = { vc, bodyID };
+                Logger::Info("[SpawnVehicle] handle=" + std::to_string(i));
+                return i;
+            }
+        }
+
+        Logger::Error("[SpawnVehicle] vehicle registry full");
+        ph.physicsSystem->RemoveStepListener(vc);
+        ph.physicsSystem->RemoveConstraint(vc);
+        vc->Release();
+        ph.bodyInterface->RemoveBody(bodyID);
+        ph.bodyInterface->DestroyBody(bodyID);
+        return RK_INVALID_VEHICLE;
+#else
+        (void)ph; (void)d;
+        return RK_INVALID_VEHICLE;
+#endif
+    }
+
+    static void SetVehicleInput(PhysicsState& ph, RK_VehicleHandle vh,
+                                const RK_VehicleInput& inp)
+    {
+#ifdef RK_JOLT_ENABLED
+        (void)ph;
+        if (vh >= MAX_VEHICLES || !s_vehicles[vh].constraint) return;
+        auto* ctrl = static_cast<JPH::WheeledVehicleController*>(
+            s_vehicles[vh].constraint->GetController());
+        // Jolt WheeledVehicleController::SetDriverInput(inForward, inBrake, inRight, inHandBrake)
+        // throttle=forward, brake=brake, steer=right — порядок подтверждён оригинальным CarTick движка
+        ctrl->SetDriverInput(inp.throttle, inp.brake, inp.steer, inp.handbrake);
+#else
+        (void)ph; (void)vh; (void)inp;
+#endif
+    }
+
+    static bool GetVehicleTransform(PhysicsState& ph, RK_VehicleHandle vh,
+                                    float& px, float& py, float& pz,
+                                    float& qx, float& qy, float& qz, float& qw,
+                                    float& vx, float& vy, float& vz)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (vh >= MAX_VEHICLES || !s_vehicles[vh].constraint || !ph.bodyInterface) {
+            px=py=pz=qx=qy=qz=0.f; qw=1.f; vx=vy=vz=0.f;
+            return false;
+        }
+        JPH::BodyID bid = s_vehicles[vh].bodyID;
+        JPH::RVec3 p = ph.bodyInterface->GetPosition(bid);
+        JPH::Quat  q = ph.bodyInterface->GetRotation(bid);
+        JPH::Vec3  vel = ph.bodyInterface->GetLinearVelocity(bid);
+        px=(float)p.GetX(); py=(float)p.GetY(); pz=(float)p.GetZ();
+        qx=q.GetX(); qy=q.GetY(); qz=q.GetZ(); qw=q.GetW();
+        vx=vel.GetX(); vy=vel.GetY(); vz=vel.GetZ();
+        return true;
+#else
+        (void)ph; (void)vh;
+        px=py=pz=qx=qy=qz=0.f; qw=1.f; vx=vy=vz=0.f;
+        return false;
+#endif
+    }
+
+    static void DestroyVehicle(PhysicsState& ph, RK_VehicleHandle vh)
+    {
+#ifdef RK_JOLT_ENABLED
+        if (vh >= MAX_VEHICLES || !s_vehicles[vh].constraint) return;
+        auto& e = s_vehicles[vh];
+        if (ph.physicsSystem) {
+            ph.physicsSystem->RemoveStepListener(e.constraint);
+            ph.physicsSystem->RemoveConstraint(e.constraint);
+        }
+        e.constraint->Release();
+        if (ph.bodyInterface && !e.bodyID.IsInvalid()) {
+            ph.bodyInterface->RemoveBody(e.bodyID);
+            ph.bodyInterface->DestroyBody(e.bodyID);
+        }
+        e = {};
+        Logger::Info("[DestroyVehicle] handle=" + std::to_string(vh));
+#else
+        (void)ph; (void)vh;
+#endif
+    }
+
     inline EngineAPI Build()
     {
         EngineAPI api;
@@ -245,14 +480,27 @@ namespace RKeng::EngineAPI_Impl
         api.SpawnStaticBoxRot = SpawnStaticBoxRot;
         api.SpawnDynamicBox   = SpawnDynamicBox;
         api.DestroyBody          = DestroyBody;
-        api.GetBodyTransform      = GetBodyTransform;
+        api.GetBodyTransform     = GetBodyTransform;
         api.SetPlayerVelocity    = SetPlayerVelocity;
         api.GetPlayerVelocity    = GetPlayerVelocity;
         api.GetGravityY          = GetGravityY;
-        api.CreateCharacter       = CreateCharacter;
-        api.engineVersion        = 4;
-        // ── Jolt синглтоны для InitJoltFromEngine() в DLL ────────────────
+        api.CreateCharacter      = CreateCharacter;
+        // Транспорт (v6)
+        api.SpawnVehicle         = SpawnVehicle;
+        api.SetVehicleInput      = SetVehicleInput;
+        api.GetVehicleTransform  = GetVehicleTransform;
+        api.DestroyVehicle       = DestroyVehicle;
+        api.OptimizeBroadPhase   = [](PhysicsState& ph) {
 #ifdef RK_JOLT_ENABLED
+            if (ph.initialized && ph.physicsSystem)
+                ph.physicsSystem->OptimizeBroadPhase();
+#else
+            (void)ph;
+#endif
+        };
+        api.engineVersion        = 7;
+#ifdef RK_JOLT_ENABLED
+        // Jolt-синглтоны (v5, оставлены для обратной совместимости)
         api.joltAllocate   = reinterpret_cast<void*>(JPH::Allocate);
         api.joltFree       = reinterpret_cast<void*>(JPH::Free);
         api.joltReallocate = reinterpret_cast<void*>(JPH::Reallocate);

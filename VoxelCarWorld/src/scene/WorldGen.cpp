@@ -2,9 +2,11 @@
 // Правило: ТОЛЬКО через EngineAPI. Никаких JPH::.
 
 #include "WorldGen.h"
+#include "SceneState.h"
 #include "VoxelWall.h"
 #include <cmath>
 #include <algorithm>
+#include <glm/glm.hpp>
 #include <string>
 
 namespace RKeng::WorldGen
@@ -141,6 +143,38 @@ namespace RKeng::WorldGen
                       rng.f(1.f,4.f));
         }
 
+
+        // Визуальный меш хайтмапа
+        {
+            auto& sm = scene.sceneMesh;
+            sm.vertices.clear();
+            sm.indices.clear();
+            const int cols = cfg.hmapCols, rows = cfg.hmapRows;
+            float sx = -(float)cols * cfg.cellSize * 0.5f;
+            float sz = -(float)rows * cfg.cellSize * 0.5f;
+            auto GetH2 = [&](int ix, int iz) {
+                int cx = std::clamp(ix,0,cols), cz = std::clamp(iz,0,rows);
+                return hmap[cz*(cols+1)+cx];
+            };
+            for (int iz = 0; iz < rows; iz++)
+            for (int ix = 0; ix < cols; ix++) {
+                float x0=sx+ix*cfg.cellSize, x1=x0+cfg.cellSize;
+                float z0=sz+iz*cfg.cellSize, z1=z0+cfg.cellSize;
+                float h00=GetH2(ix,iz), h10=GetH2(ix+1,iz);
+                float h01=GetH2(ix,iz+1), h11=GetH2(ix+1,iz+1);
+                glm::vec3 v0(x0,h00,z0),v1(x1,h10,z0),v2(x0,h01,z1);
+                glm::vec3 n = glm::normalize(glm::cross(v1-v0, v2-v0));
+                float g = 0.35f + std::clamp(((h00+h10+h01+h11)*0.25f+cfg.maxHeight)/(2.f*cfg.maxHeight),0.f,1.f)*0.3f;
+                uint32_t base = (uint32_t)(sm.vertices.size()/9);
+                sm.vertices.insert(sm.vertices.end(),{x0,h00,z0, 0.15f,g,0.1f, n.x,n.y,n.z});
+                sm.vertices.insert(sm.vertices.end(),{x1,h10,z0, 0.15f,g,0.1f, n.x,n.y,n.z});
+                sm.vertices.insert(sm.vertices.end(),{x0,h01,z1, 0.15f,g,0.1f, n.x,n.y,n.z});
+                sm.vertices.insert(sm.vertices.end(),{x1,h11,z1, 0.15f,g,0.1f, n.x,n.y,n.z});
+                sm.indices.insert(sm.indices.end(),{base,base+1,base+2,base+1,base+3,base+2});
+            }
+            sm.modelMatrix = glm::mat4(1.0f);
+            sm.dirty = true;
+        }
         if (api.LogInfo) api.LogInfo("WorldGen: done");
     }
 }

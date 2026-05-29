@@ -152,7 +152,7 @@ namespace RKeng::VulkanBufferCreate
         vkFreeMemory(vk.device, stagingIMem, nullptr);
 
         // ── Uniform buffers (per frame) ───────────────────────────────────────
-        VkDeviceSize uSize = sizeof(float) * 16 * 3; // model+view+proj
+        VkDeviceSize uSize = sizeof(float) * (16 + 16 + 4 + 4 + 4); // view+proj+sunDir+sunColor+ambient = 176 bytes
         vk.uniformBuffers.resize(VulkanState::MAX_FRAMES_IN_FLIGHT);
         vk.uniformBuffersMemory.resize(VulkanState::MAX_FRAMES_IN_FLIGHT);
         vk.uniformBuffersMapped.resize(VulkanState::MAX_FRAMES_IN_FLIGHT);

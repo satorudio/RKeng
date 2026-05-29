@@ -15,7 +15,15 @@
 
 namespace RKeng::VulkanFrameDraw
 {
-    struct UBO { glm::mat4 model, view, proj; };
+    // Должен точно соответствовать UniformBufferObject в шейдерах:
+    // view(64) + proj(64) + sunDir(16,std140) + sunColor(16) + ambientColor(16) = 176 bytes
+    struct UBO {
+        glm::mat4 view;
+        glm::mat4 proj;
+        glm::vec4 sunDir;        // w не используется
+        glm::vec4 sunColor;
+        glm::vec4 ambientColor;
+    };
 
     static std::vector<VoxelWallBuffer::WallGpuBuffers> s_wallBuffers;
 
@@ -280,7 +288,8 @@ namespace RKeng::VulkanFrameDraw
         float pitch = glm::radians(input.pitch);
 
         glm::vec3 pos = player.worldPos.ToLocal(scene.originShift);
-        pos.y += player.currentHeight * 0.85f;
+        if (!scene.thirdPersonCamera)
+            pos.y += player.currentHeight * 0.85f;
 
         glm::vec3 front;
         front.x = glm::sin(yaw) * glm::cos(pitch);
@@ -291,13 +300,16 @@ namespace RKeng::VulkanFrameDraw
         float nearPlane = player.isCrouching ? 0.01f : 0.05f;
 
         UBO ubo{};
-        ubo.model = glm::mat4(1.0f);
         ubo.view  = glm::lookAt(pos, pos + front, glm::vec3(0,1,0));
         ubo.proj  = glm::perspective(glm::radians(90.0f),
                         static_cast<float>(vk.scExtent.width) /
                         static_cast<float>(vk.scExtent.height),
                         nearPlane, 500.0f);
         ubo.proj[1][1] *= -1.0f;
+        // Освещение — значения по умолчанию, плагин может переопределить через SceneState
+        ubo.sunDir       = glm::vec4(glm::normalize(glm::vec3(0.4f, 1.0f, 0.6f)), 0.0f);
+        ubo.sunColor     = glm::vec4(1.0f, 0.95f, 0.8f, 0.0f);
+        ubo.ambientColor = glm::vec4(0.15f, 0.18f, 0.25f, 0.0f);
 
         memcpy(vk.uniformBuffersMapped[frame], &ubo, sizeof(ubo));
 

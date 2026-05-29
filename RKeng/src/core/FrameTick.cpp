@@ -173,7 +173,8 @@ namespace RKeng::FrameTick
             float pitch = glm::radians(input.pitch);
 
             glm::vec3 pos = player.worldPos.ToLocal(scene.originShift);
-            pos.y += player.currentHeight * 0.85f;
+            if (!scene.thirdPersonCamera)
+                pos.y += player.currentHeight * 0.85f;
 
             glm::vec3 front;
             front.x = glm::sin(yaw) * glm::cos(pitch);

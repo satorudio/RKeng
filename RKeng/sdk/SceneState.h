@@ -108,6 +108,10 @@ namespace RKeng
         std::array<Vec4, 6> frustumPlanes {};
         bool frustumReady = false;
 
+        // Если true — движок НЕ прибавляет currentHeight*0.85 к позиции камеры.
+        // Используется DLL-сценами с камерой от третьего лица (камера уже в финальной позиции).
+        bool thirdPersonCamera = false;
+
 #ifdef RK_JOLT_ENABLED
         JPH::BodyID floorBodyID;
         JPH::BodyID wallBodyIDs[4];

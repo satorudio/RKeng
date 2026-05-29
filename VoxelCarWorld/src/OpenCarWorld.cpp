@@ -1,17 +1,11 @@
 // OpenCarWorld.cpp — точка входа DLL-сцены.
-// Простой пикап: box-кузов + VehicleConstraint + процедурный мир.
-// Без вокселей, без NPC, без грязи — чисто машина и езда.
+// Машина создаётся через api.SpawnVehicle() — никакого Jolt в DLL.
 
 #include "IScenePlugin.h"
 #include "EngineAPI.h"
-#include "JoltBridge.h"
 #include "SceneState.h"
 #include "PhysicsState.h"
 #include "Logger.h"
-
-#ifdef RK_JOLT_ENABLED
-#include <Jolt/RegisterTypes.h>
-#endif
 
 #include "scene/CarState.h"
 #include "scene/CarLoad.h"
@@ -35,12 +29,13 @@ namespace
                     RKeng::PhysicsState& ph,
                     const RKeng::EngineAPI& api) override
         {
+            m_api = api; if (api.LogInfo) { auto s = "ph.initialized=" + std::to_string(ph.initialized); api.LogInfo(s.c_str()); }
             RKeng::Logger::Info("PickupScene: OnLoad");
 
-#ifdef RK_JOLT_ENABLED
-            RKeng::InitJoltFromEngine(api);
-            JPH::RegisterTypes();
-#endif
+            if (api.engineVersion < 6) {
+                if (api.LogError) api.LogError("PickupScene: engine v6+ required (SpawnVehicle)");
+                return;
+            }
 
             // Мир
             RKeng::WorldGen::WorldConfig wCfg;
@@ -50,20 +45,26 @@ namespace
             wCfg.seed          = 1337;
             RKeng::WorldGen::Generate(scene, ph, api, wCfg);
 
-            // Машина
+            // ОБЯЗАТЕЛЬНО после всех статических тел — иначе колёса проваливаются сквозь пол
+            if (api.OptimizeBroadPhase) api.OptimizeBroadPhase(ph);
+
+            // Машина — VehicleConstraint создаётся внутри движка
             RKeng::Vec3 spawnPos { 0.0f, 2.0f, 0.0f };
-            RKeng::Logger::Info("CarLoad: start");
             RKeng::CarLoad::Run(m_car, ph, spawnPos, api);
-            RKeng::Logger::Info("CarLoad: done");
+
+            if (!m_car.initialized) {
+                if (api.LogError) api.LogError("PickupScene: CarLoad failed");
+                return;
+            }
+
+            // CarConstraint::Register — no-op (SpawnVehicle уже добавил constraint)
             RKeng::CarConstraint::Register(m_car, ph);
-            RKeng::Logger::Info("CarConstraint: done");
-            RKeng::CarMesh::Build(m_car);
-            RKeng::Logger::Info("CarMesh: done");
 
-            // Первый кадр камеры
+            RKeng::CarMesh::Build(m_car); m_car.camPitch = 0.0f; m_car.camYaw = 0.0f;
+
+            scene.thirdPersonCamera = true;   // движок не добавляет currentHeight*0.85 — позицию мы выставляем сами в CarTick
+            scene.player.currentHeight = 0.0f;
             SyncCamera(scene);
-
-            // Меш в сцену
             SyncMesh(scene);
 
             RKeng::Logger::Info("PickupScene: ready");
@@ -74,7 +75,7 @@ namespace
                     float dt) override
         {
             RKeng::CarInputPoll::Run(m_car, scene, dt);
-            RKeng::CarTick::Run(m_car, ph, scene, dt);
+            RKeng::CarTick::Run(m_car, ph, scene, dt, m_api);
             SyncMesh(scene);
         }
 
@@ -82,8 +83,9 @@ namespace
                       RKeng::PhysicsState& ph) override
         {
             RKeng::Logger::Info("PickupScene: OnUnload");
+            scene.thirdPersonCamera = false;
             RKeng::CarConstraint::Unregister(m_car, ph);
-            RKeng::CarLoad::Destroy(m_car, ph);
+            RKeng::CarLoad::Destroy(m_car, ph, m_api);
             scene.sceneMesh.vertices.clear();
             scene.sceneMesh.indices.clear();
             scene.sceneMesh.dirty = true;
@@ -92,12 +94,12 @@ namespace
     private:
         void SyncCamera(RKeng::SceneState& scene)
         {
-            // Дефолтная позиция камеры до первого тика
+            // Первоначальная позиция — над машиной (до первого тика CarTick)
             scene.player.worldPos.world.x = m_car.position.x;
-            scene.player.worldPos.world.y = m_car.position.y + 5.0f;
-            scene.player.worldPos.world.z = m_car.position.z - 10.0f;
+            scene.player.worldPos.world.y = m_car.position.y + m_car.params.halfH * 1.6f;
+            scene.player.worldPos.world.z = m_car.position.z + m_car.params.halfL * 0.5f;
             scene.input.yaw   = 0.0f;
-            scene.input.pitch = -15.0f;
+            scene.input.pitch = 0.0f;
         }
 
         void SyncMesh(RKeng::SceneState& scene)
@@ -110,12 +112,13 @@ namespace
             sm.dirty = true;
         }
 
-        RKeng::CarState m_car;
+        RKeng::CarState  m_car;
+        RKeng::EngineAPI m_api;
     };
 }
 
 extern "C"
 {
-    RK_EXPORT RKeng::IScenePlugin* RK_CreateScene()               { return new PickupScene(); }
+    RK_EXPORT RKeng::IScenePlugin* RK_CreateScene()                    { return new PickupScene(); }
     RK_EXPORT void                 RK_DestroyScene(RKeng::IScenePlugin* p) { delete p; }
 }

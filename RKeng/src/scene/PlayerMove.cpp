@@ -94,7 +94,7 @@ namespace RKeng::PlayerMove
     }
 #endif
 
-    void Run(SceneState& scene, PhysicsState& ph)
+    RK_API void Run(SceneState& scene, PhysicsState& ph)
     {
         const float dt = scene.deltaTime;
         auto& player   = scene.player;

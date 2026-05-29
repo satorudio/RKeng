@@ -37,9 +37,10 @@ namespace RKeng::VulkanPipelineCreate
 
         // Per-vertex attrs (binding 0)
         std::array<VkVertexInputAttributeDescription, 9> attrs{};
+        // loc0=inPosition, loc1=inColor(offset 24), loc2=inNormal(offset 12) — по шейдеру
         attrs[0] = {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0};
-        attrs[1] = {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*3};
-        attrs[2] = {2, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*6};
+        attrs[1] = {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*6};
+        attrs[2] = {2, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*3};
         // Per-instance attrs (binding 1): mat4 = 4x vec4 at locations 3..6
         attrs[3] = {3, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float)* 0};
         attrs[4] = {4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float)* 4};

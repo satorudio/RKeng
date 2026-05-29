@@ -5,6 +5,6 @@
 
 namespace RKeng::CarLoad
 {
-    void Run(CarState& car, PhysicsState& ph, Vec3 spawnPos, const EngineAPI& api);
-    void Destroy(CarState& car, PhysicsState& ph);
+    void Run    (CarState& car, PhysicsState& ph, Vec3 spawnPos, const EngineAPI& api);
+    void Destroy(CarState& car, PhysicsState& ph, const EngineAPI& api);
 }

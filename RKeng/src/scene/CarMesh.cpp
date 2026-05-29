@@ -55,12 +55,12 @@ namespace RKeng::CarMesh
             verts.push_back(p[0]);
             verts.push_back(p[1]);
             verts.push_back(p[2]);
-            verts.push_back(col.r * light);
-            verts.push_back(col.g * light);
-            verts.push_back(col.b * light);
             verts.push_back(nx);
             verts.push_back(ny);
             verts.push_back(nz);
+            verts.push_back(col.r * light);
+            verts.push_back(col.g * light);
+            verts.push_back(col.b * light);
         }
         // 2 треугольника
         idxs.push_back(base+0); idxs.push_back(base+1); idxs.push_back(base+2);
@@ -102,16 +102,27 @@ namespace RKeng::CarMesh
             }
         }
 
-        // Дебрис — добавляем к тому же мешу
+        // Дебрис — мировые координаты → локальные через обратный кватернион.
+        // Без этого осколки тащатся за машиной при движении/повороте.
+        glm::quat invRot = glm::inverse(car.orientation);
         for (const auto& d : car.debris)
         {
             if (d.dead) continue;
-            // Дебрис — просто один кубик
-            float cx = d.pos.x - car.position.x; // локально
-            float cy = d.pos.y - car.position.y;
-            float cz = d.pos.z - car.position.z;
+
+            // Мировая позиция осколка → локальное пространство машины
+            Vec3 local = invRot * (d.pos - car.position);
+
+            // Осколок уменьшается к концу жизни
+            float scale = d.size * glm::clamp(1.0f - d.lifetime / 4.5f, 0.1f, 1.0f);
+
+            // Затемняем по мере угасания
+            float fade  = glm::clamp(1.0f - d.lifetime / 4.0f, 0.2f, 1.0f);
+            Vec3  col   = d.color * fade;
+
             for (int fi = 0; fi < 6; fi++)
-                PushFace(car.meshVertices, car.meshIndices, cx, cy, cz, d.size, FACES[fi], d.color);
+                PushFace(car.meshVertices, car.meshIndices,
+                         local.x, local.y, local.z,
+                         scale, FACES[fi], col);
         }
 
         car.meshDirty = true;

@@ -45,8 +45,8 @@ namespace RKeng::CarMesh
         uint32_t base = (uint32_t)(V.size()/9);
         for (auto& p : verts) {
             V.push_back(p[0]); V.push_back(p[1]); V.push_back(p[2]);
-            V.push_back(r*light); V.push_back(g*light); V.push_back(b*light);
             V.push_back(nx); V.push_back(ny); V.push_back(nz);
+            V.push_back(r*light); V.push_back(g*light); V.push_back(b*light);
         }
         I.push_back(base+0); I.push_back(base+1); I.push_back(base+2);
         I.push_back(base+0); I.push_back(base+2); I.push_back(base+3);

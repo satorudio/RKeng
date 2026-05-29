@@ -30,19 +30,70 @@ namespace RKeng::CarTick
     // ----------------------------------------------------------------
     static void TickDebris(CarState& car, float dt)
     {
-        bool anyAlive = false;
+        // ── Физика каждого осколка ────────────────────────────────────────
         for (auto& d : car.debris)
         {
             if (d.dead) continue;
-            d.velocity.y  -= 9.81f * dt;       // гравитация
-            d.pos         += d.velocity * dt;
-            d.lifetime    += dt;
-            if (d.lifetime > 4.0f || d.pos.y < -20.0f)
+
+            d.velocity.y -= 22.0f * dt;
+            d.velocity   *= (1.0f - 0.55f * dt);
+            d.pos        += d.velocity * dt;
+            d.lifetime   += dt;
+
+            // Отскок от пола
+            if (d.pos.y < d.size * 0.5f && d.velocity.y < 0.0f)
+            {
+                d.pos.y      = d.size * 0.5f;
+                d.velocity.y = -d.velocity.y * 0.32f;
+                d.velocity.x *=  0.55f;
+                d.velocity.z *=  0.55f;
+                if (std::abs(d.velocity.y) < 1.2f)
+                    d.velocity.y = 0.0f;
+            }
+
+            if (d.lifetime > 4.5f || d.pos.y < -30.0f)
                 d.dead = true;
-            else
-                anyAlive = true;
         }
+
+        // ── Сепарация: не даём осколкам проваливаться друг в друга ───────
+        // O(n²) — нормально при n < 50
+        const int n = (int)car.debris.size();
+        for (int i = 0; i < n; i++)
+        {
+            auto& a = car.debris[i];
+            if (a.dead) continue;
+            for (int j = i + 1; j < n; j++)
+            {
+                auto& b = car.debris[j];
+                if (b.dead) continue;
+
+                float minDist = (a.size + b.size) * 0.5f;
+                Vec3  delta   = b.pos - a.pos;
+                float dist    = glm::length(delta);
+                if (dist < 0.0001f || dist >= minDist) continue;
+
+                // Раздвигаем по оси столкновения
+                Vec3  axis  = delta / dist;
+                float push  = (minDist - dist) * 0.5f;
+                a.pos -= axis * push;
+                b.pos += axis * push;
+
+                // Обмениваем компоненты скорости по оси (упругий удар, e=0.3)
+                float va = glm::dot(a.velocity, axis);
+                float vb = glm::dot(b.velocity, axis);
+                if (va - vb > 0.0f) continue; // уже расходятся
+                constexpr float e = 0.3f;
+                float va2 = (va + vb + e * (vb - va)) * 0.5f;
+                float vb2 = (va + vb + e * (va - vb)) * 0.5f;
+                a.velocity += axis * (va2 - va);
+                b.velocity += axis * (vb2 - vb);
+            }
+        }
+
         // Убираем мёртвые
+        bool anyAlive = false;
+        for (auto& d : car.debris)
+            if (!d.dead) { anyAlive = true; break; }
         if (!anyAlive && !car.debris.empty())
             car.debris.clear();
     }
@@ -92,9 +143,22 @@ namespace RKeng::CarTick
                 d.color    = v.color;
                 d.size     = S * 0.9f;
                 // Импульс вылета
-                d.velocity = hitDir * (8.0f + Randf(0,8.0f))
-                           + Vec3(Randf(-3,3), Randf(2,10), Randf(-3,3));
-                d.angularVel = Vec3(Randf(-5,5), Randf(-5,5), Randf(-5,5));
+                // Радиальный вылет от точки удара — каждый осколок летит
+                // в свою сторону, пропорционально расстоянию от эпицентра
+                Vec3 fromImpact = Vec3(cx,cy,cz) - hitLocalPos;
+                float dist = glm::length(fromImpact);
+                Vec3 radial = (dist > 0.01f)
+                    ? glm::normalize(fromImpact)
+                    : Vec3(Randf(-1,1), Randf(0.2f,1), Randf(-1,1));
+
+                float speed = 14.0f + Randf(0, 18.0f) + impulse * 0.01f;
+
+                d.velocity = radial  * speed
+                           + hitDir  * Randf(3, 8)
+                           + Vec3(Randf(-5, 5),
+                                  Randf(4, 20),
+                                  Randf(-5, 5));
+                d.angularVel = Vec3(Randf(-18,18), Randf(-18,18), Randf(-18,18));
                 car.debris.push_back(d);
             }
             else if (impulse >= car.damage.voxelCrackImpulse * impactFraction)

@@ -107,7 +107,7 @@ target_include_directories(CubePhysicsScene PRIVATE
 
 target_compile_definitions(CubePhysicsScene PRIVATE
     RK_SCENE_BUILD
-    $<$<BOOL:${JOLT_OK}>:RK_JOLT_ENABLED>
+    # RK_JOLT_ENABLED убран: DLL не использует Jolt.
     $<$<CONFIG:Debug>:   RK_DEBUG>
     $<$<CONFIG:Release>: RK_RELEASE>
     GLM_FORCE_RADIANS
@@ -134,7 +134,8 @@ endif()
 target_link_libraries(CubePhysicsScene PRIVATE
     CP_GLM
     $<$<BOOL:${Vulkan_FOUND}>:Vulkan::Vulkan>
-    $<$<BOOL:${JOLT_OK}>:CP_Jolt>
+    # CP_Jolt убран: VehicleConstraint создаётся в движке через api.SpawnVehicle.
+    # DLL не линкует Jolt — нет риска двух копий синглтонов.
     $<$<BOOL:${RKENG_IMP_OK}>:RKengCore>
     $<$<BOOL:${GLFW_LIB}>:${GLFW_LIB}>
 )
