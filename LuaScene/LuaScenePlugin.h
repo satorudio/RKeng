@@ -1,8 +1,7 @@
 #pragma once
 #include <IScenePlugin.h>
 #include <EngineAPI.h>
-#include <SceneState.h>
-#include <PhysicsState.h>
+#include "../../RKeng/src/core/SceneState.h"
 
 #include <sol/sol.hpp>
 #include <string>
@@ -15,9 +14,9 @@ namespace RKeng
         explicit LuaScenePlugin(std::string scriptPath);
         ~LuaScenePlugin() override = default;
 
-        void OnLoad  (SceneState& scene, PhysicsState& physics, const EngineAPI& api) override;
-        void OnTick  (SceneState& scene, PhysicsState& physics, float dt)             override;
-        void OnUnload(SceneState& scene, PhysicsState& physics)                       override;
+        void OnLoad  (SceneState& scene, const EngineAPI& api) override;
+        void OnTick  (SceneState& scene, float dt)             override;
+        void OnUnload(SceneState& scene)                       override;
 
         const char* GetName() const override { return "LuaScene"; }
 
@@ -27,9 +26,8 @@ namespace RKeng
         std::string      m_scriptPath;
         sol::state       m_lua;
 
-        SceneState*      m_scene   = nullptr;
-        PhysicsState*    m_physics = nullptr;
-        const EngineAPI* m_api     = nullptr;
+        SceneState*      m_scene = nullptr;
+        const EngineAPI* m_api   = nullptr;
 
         sol::protected_function m_fnOnLoad;
         sol::protected_function m_fnOnTick;

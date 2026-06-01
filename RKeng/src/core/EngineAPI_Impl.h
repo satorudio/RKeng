@@ -473,32 +473,45 @@ namespace RKeng::EngineAPI_Impl
     inline EngineAPI Build()
     {
         EngineAPI api;
+        // Логгер — без PhysicsState, подключаем напрямую
         api.LogInfo           = LogInfo;
         api.LogWarn           = LogWarn;
         api.LogError          = LogError;
-        api.SpawnStaticBox    = SpawnStaticBox;
-        api.SpawnStaticBoxRot = SpawnStaticBoxRot;
-        api.SpawnDynamicBox   = SpawnDynamicBox;
-        api.DestroyBody          = DestroyBody;
-        api.GetBodyTransform     = GetBodyTransform;
-        api.SetPlayerVelocity    = SetPlayerVelocity;
-        api.GetPlayerVelocity    = GetPlayerVelocity;
-        api.GetGravityY          = GetGravityY;
-        api.CreateCharacter      = CreateCharacter;
+        // Все функции-имплементации принимают PhysicsState& внутри движка.
+        // Снаружи API принимает RK_WorldHandle (uint32_t).
+        // Адаптеры ниже игнорируют world (он всегда 0) и берут глобальный PhysicsState.
+        api.SpawnStaticBox    = [](RK_WorldHandle, const RK_BoxBody& b)    { return SpawnStaticBox   (GetPhysicsState(), b); };
+        api.SpawnStaticBoxRot = [](RK_WorldHandle, const RK_StaticBox& b)  { return SpawnStaticBoxRot(GetPhysicsState(), b); };
+        api.SpawnDynamicBox   = [](RK_WorldHandle, const RK_DynamicBox& b) { return SpawnDynamicBox  (GetPhysicsState(), b); };
+        api.DestroyBody       = [](RK_WorldHandle, uint32_t id)            { DestroyBody    (GetPhysicsState(), id); };
+        api.GetBodyTransform  = [](RK_WorldHandle, uint32_t id,
+                                   float& px, float& py, float& pz,
+                                   float& qx, float& qy, float& qz, float& qw)
+                                { return GetBodyTransform(GetPhysicsState(), id, px, py, pz, qx, qy, qz, qw); };
+        api.SetPlayerVelocity = [](RK_WorldHandle, float vx, float vy, float vz)
+                                { SetPlayerVelocity(GetPhysicsState(), vx, vy, vz); };
+        api.GetPlayerVelocity = [](RK_WorldHandle, float& vx, float& vy, float& vz)
+                                { GetPlayerVelocity(GetPhysicsState(), vx, vy, vz); };
+        api.GetGravityY       = [](RK_WorldHandle)       { return GetGravityY    (GetPhysicsState()); };
+        api.CreateCharacter   = [](RK_WorldHandle, const RK_CharacterDesc& d)  { return CreateCharacter(GetPhysicsState(), d); };
         // Транспорт (v6)
-        api.SpawnVehicle         = SpawnVehicle;
-        api.SetVehicleInput      = SetVehicleInput;
-        api.GetVehicleTransform  = GetVehicleTransform;
-        api.DestroyVehicle       = DestroyVehicle;
-        api.OptimizeBroadPhase   = [](PhysicsState& ph) {
+        api.SpawnVehicle      = [](RK_WorldHandle, const RK_VehicleDesc& d)    { return SpawnVehicle   (GetPhysicsState(), d); };
+        api.SetVehicleInput   = [](RK_WorldHandle, RK_VehicleHandle vh, const RK_VehicleInput& i)
+                                { SetVehicleInput(GetPhysicsState(), vh, i); };
+        api.GetVehicleTransform = [](RK_WorldHandle, RK_VehicleHandle vh,
+                                     float& px, float& py, float& pz,
+                                     float& qx, float& qy, float& qz, float& qw,
+                                     float& vx, float& vy, float& vz)
+                                  { return GetVehicleTransform(GetPhysicsState(), vh, px, py, pz, qx, qy, qz, qw, vx, vy, vz); };
+        api.DestroyVehicle    = [](RK_WorldHandle, RK_VehicleHandle vh) { DestroyVehicle(GetPhysicsState(), vh); };
+        api.OptimizeBroadPhase = [](RK_WorldHandle) {
 #ifdef RK_JOLT_ENABLED
+            auto& ph = GetPhysicsState();
             if (ph.initialized && ph.physicsSystem)
                 ph.physicsSystem->OptimizeBroadPhase();
-#else
-            (void)ph;
 #endif
         };
-        api.engineVersion        = 7;
+        api.engineVersion        = 8;
 #ifdef RK_JOLT_ENABLED
         // Jolt-синглтоны (v5, оставлены для обратной совместимости)
         api.joltAllocate   = reinterpret_cast<void*>(JPH::Allocate);

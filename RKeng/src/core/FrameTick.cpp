@@ -203,7 +203,7 @@ namespace RKeng::FrameTick
 
         auto& loader = GetSceneLoader();
         if (loader.IsLoaded())
-            loader.GetPlugin()->OnTick(scene, physics, dt);
+            loader.GetPlugin()->OnTick(scene, dt);
 
         // ── Статистика каждые STAT_INTERVAL кадров ────────────────────────
         s_StatFrames++;

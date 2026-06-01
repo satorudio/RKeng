@@ -196,15 +196,6 @@ file(GLOB_RECURSE ENGINE_SOURCES
     ${SRC_DIR}/physics/*.cpp
     ${SRC_DIR}/input/*.cpp
     ${SRC_DIR}/voxel/*.cpp
-    ${SRC_DIR}/scene/SceneTemplate.cpp
-    ${SRC_DIR}/scene/SceneLoad.cpp
-    ${SRC_DIR}/scene/PlayerMove.cpp
-    ${SRC_DIR}/scene/CarState.cpp
-    ${SRC_DIR}/scene/CarLoad.cpp
-    ${SRC_DIR}/scene/CarMesh.cpp
-    ${SRC_DIR}/scene/CarInputPoll.cpp
-    ${SRC_DIR}/scene/CarTick.cpp
-    ${SRC_DIR}/scene/WorldGen.cpp
 )
 
 # ============================================================
@@ -347,68 +338,6 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/shaders)
     )
 endif()
 
-# ============================================================
-#  SDK — публичные заголовки для DLL-сцен
-#  Сцены линкуются к: libRKengCore.dll.a (import lib из build/)
-# ============================================================
-set(SDK_DIR ${CMAKE_SOURCE_DIR}/sdk)
-
-add_custom_command(TARGET RKengCore POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/engine_api/IScenePlugin.h
-        ${CMAKE_SOURCE_DIR}/engine_api/EngineAPI.h
-        ${SDK_DIR}/
-    COMMENT "[RKeng] SDK: copying engine_api headers"
-)
-
-# FlattenSDK: копируем заголовки из src/ в sdk/ заменяя все относительные пути
-# (#include "../../foo/Bar.h" → #include "Bar.h"). Python вместо CMake-скрипта
-# чтобы избежать многоуровневого CMake regex-эскейпинга.
-set(SDK_FLATTEN_SCRIPT ${CMAKE_BINARY_DIR}/FlattenSDK.py)
-file(WRITE ${SDK_FLATTEN_SCRIPT} [=[
-import re, sys, os
-from pathlib import Path
-
-src_dir = Path(sys.argv[1])
-sdk_dir = Path(sys.argv[2])
-sdk_dir.mkdir(parents=True, exist_ok=True)
-
-headers = [
-    "scene/CarState.h",
-    "scene/CarInputPoll.h",
-    "scene/CarLoad.h",
-    "scene/CarMesh.h",
-    "scene/CarTick.h",
-    "scene/PlayerMove.h",
-    "scene/SceneLoad.h",
-    "core/SceneState.h",
-    "voxel/VoxelWall.h",
-    "vulkan/VoxelWallBuffer.h",
-    "scene/WorldGen.h",
-    "math/MathTypes.h",
-    "physics/PhysicsState.h",
-    "physics/RKContactListener.h",
-    "utils/Logger.h",
-]
-
-# Заменяем #include "any/path/File.h" -> #include "File.h"
-# Не трогаем <system> includes и уже плоские "File.h"
-pattern = re.compile(r'#include "(?:[^/"]+/)+([^/"]+\.h)"')
-
-for rel in headers:
-    src = src_dir / rel
-    dst = sdk_dir / Path(rel).name
-    text = src.read_text(encoding="utf-8")
-    text = pattern.sub(r'#include "\1"', text)
-    dst.write_text(text, encoding="utf-8")
-
-print(f"[RKeng] SDK headers synced to {sdk_dir}")
-]=])
-
-add_custom_command(TARGET RKengCore POST_BUILD
-    COMMAND python3 ${SDK_FLATTEN_SCRIPT} ${SRC_DIR} ${SDK_DIR}
-    COMMENT "[RKeng] SDK: syncing scene headers"
-)
 
 # ============================================================
 #  SERVER

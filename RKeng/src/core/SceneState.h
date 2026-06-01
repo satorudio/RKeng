@@ -40,10 +40,6 @@ namespace RKeng
         bool      isSomersaulting = false;
         float     somersaultAngle = 0.0f;
         bool      canDoubleJump   = false;
-
-#ifdef RK_JOLT_ENABLED
-        JPH::BodyID floorBodyID;
-#endif
     };
 
     struct InputState
@@ -111,12 +107,6 @@ namespace RKeng
         // Если true — движок НЕ прибавляет currentHeight*0.85 к позиции камеры.
         // Используется DLL-сценами с камерой от третьего лица (камера уже в финальной позиции).
         bool thirdPersonCamera = false;
-
-#ifdef RK_JOLT_ENABLED
-        JPH::BodyID floorBodyID;
-        JPH::BodyID wallBodyIDs[4];
-        std::vector<JPH::BodyID> worldStaticBodyIDs; // все статики от WorldGen
-#endif
     };
 
     SceneState& GetSceneState();

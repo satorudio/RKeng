@@ -26,8 +26,7 @@ namespace RKeng::EngineShutdown
             if (loader.IsLoaded())
             {
                 Logger::Info("Unloading DLL scene: " + loader.GetPath());
-                loader.GetPlugin()->OnUnload(GetSceneState(), GetPhysicsState());
-                loader.Unload();
+                loader.GetPlugin()->OnUnload(GetSceneState());loader.Unload();
                 Logger::Info("DLL scene unloaded OK.");
             }
         }

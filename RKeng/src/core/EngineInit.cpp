@@ -81,7 +81,7 @@ namespace RKeng::EngineInit
                 s_SceneLoader->Load(activeDll);
 
                 EngineAPI api = EngineAPI_Impl::Build();
-                s_SceneLoader->GetPlugin()->OnLoad(GetSceneState(), GetPhysicsState(), api);
+                s_SceneLoader->GetPlugin()->OnLoad(GetSceneState(), api);
                 Logger::Info(std::string(">>> Step 4: DLL scene '") +
                              s_SceneLoader->GetPlugin()->GetName() + "' loaded OK");
             }

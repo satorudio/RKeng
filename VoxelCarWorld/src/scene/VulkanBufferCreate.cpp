@@ -1,1 +1,0 @@
-// VulkanBufferCreate.cpp — stub.

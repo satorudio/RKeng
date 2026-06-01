@@ -10,17 +10,17 @@ if(NOT DEFINED RKENG_DIR)
 endif()
 get_filename_component(RKENG_DIR "${RKENG_DIR}" ABSOLUTE)
 
-set(RKENG_SDK_DIR "${RKENG_DIR}/sdk")
+set(RKENG_SDK_DIR "${RKENG_DIR}/engine_api")
 set(RKENG_LIB_DIR "${RKENG_DIR}/lib")
 set(RKENG_BUILD   "${RKENG_DIR}/build")
 
 message(STATUS "[LuaScene] RKENG_DIR   = ${RKENG_DIR}")
 message(STATUS "[LuaScene] RKENG_BUILD = ${RKENG_BUILD}")
-message(STATUS "[LuaScene] RKENG_SDK   = ${RKENG_SDK_DIR}")
+message(STATUS "[LuaScene] RKENG_API   = ${RKENG_SDK_DIR}")
 
 if(NOT EXISTS "${RKENG_SDK_DIR}/IScenePlugin.h")
     message(FATAL_ERROR
-        "[LuaScene] SDK не найден в '${RKENG_SDK_DIR}'.\n"
+        "[LuaScene] engine_api не найден в '${RKENG_SDK_DIR}'.\n"
         "  Сначала собери RKengCore, или передай -DRKENG_DIR=<путь>")
 endif()
 
@@ -104,7 +104,8 @@ add_library(LuaScene SHARED
 
 target_include_directories(LuaScene PRIVATE
     "${CMAKE_SOURCE_DIR}"       # чтобы #include "LuaScenePlugin.h" работал
-    "${RKENG_SDK_DIR}"          # IScenePlugin.h, EngineAPI.h, SceneState.h, ...
+    "${RKENG_SDK_DIR}"          # IScenePlugin.h, EngineAPI.h
+    "${RKENG_DIR}/src"          # SceneState.h, RKExport.h, Logger.h, ...
     "${RKENG_LIB_DIR}"          # на случай прямых lib-инклудов
 )
 

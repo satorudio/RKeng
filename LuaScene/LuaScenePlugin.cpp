@@ -1,14 +1,7 @@
 // LuaScenePlugin.cpp
 
 #include "LuaScenePlugin.h"
-
-#include <IScenePlugin.h>
-#include <EngineAPI.h>
-#include <SceneState.h>
-#include <PhysicsState.h>
-#include <Logger.h>
-#include <WorldGen.h>
-#include <PlayerMove.h>
+#include "../../RKeng/src/utils/Logger.h"
 
 #include <string>
 #include <cstdlib>
@@ -46,11 +39,10 @@ LuaScenePlugin::LuaScenePlugin(std::string scriptPath)
         sol::lib::io, sol::lib::os);
 }
 
-void LuaScenePlugin::OnLoad(SceneState& scene, PhysicsState& physics, const EngineAPI& api)
+void LuaScenePlugin::OnLoad(SceneState& scene, const EngineAPI& api)
 {
-    m_scene   = &scene;
-    m_physics = &physics;
-    m_api     = &api;
+    m_scene = &scene;
+    m_api   = &api;
 
     RK_SAFE("BindAll", BindAll());
 
@@ -81,7 +73,7 @@ void LuaScenePlugin::OnLoad(SceneState& scene, PhysicsState& physics, const Engi
     }
 }
 
-void LuaScenePlugin::OnTick(SceneState&, PhysicsState&, float dt)
+void LuaScenePlugin::OnTick(SceneState&, float dt)
 {
     if (!m_fnOnTick.valid()) return;
     RK_SAFE("on_tick", {
@@ -90,7 +82,7 @@ void LuaScenePlugin::OnTick(SceneState&, PhysicsState&, float dt)
     });
 }
 
-void LuaScenePlugin::OnUnload(SceneState&, PhysicsState&)
+void LuaScenePlugin::OnUnload(SceneState&)
 {
     if (m_fnOnUnload.valid()) {
         RK_SAFE("on_unload", {
@@ -98,7 +90,7 @@ void LuaScenePlugin::OnUnload(SceneState&, PhysicsState&)
             RK_LUA_CHECK(r, "on_unload");
         });
     }
-    m_scene = nullptr; m_physics = nullptr; m_api = nullptr;
+    m_scene = nullptr; m_api = nullptr;
 }
 
 void LuaScenePlugin::BindAll()
@@ -114,41 +106,18 @@ void LuaScenePlugin::BindAll()
     if (m_api->LogError)
         eng.set_function("log_error", [this](const std::string& s){ m_api->LogError(s.c_str()); });
 
-    // ── Мир ──────────────────────────────────────────────────────────────────
-    eng.set_function("world_generate",
-        [this](sol::optional<sol::table> t) {
-            RK_SAFE("world_generate", {
-                WorldGen::WorldConfig cfg;
-                if (t) {
-                    cfg.worldSize      = t->get_or("world_size",       cfg.worldSize);
-                    cfg.numVoxelWalls  = t->get_or("num_voxel_walls",  cfg.numVoxelWalls);
-                    cfg.numSolidBlocks = t->get_or("num_solid_blocks",  cfg.numSolidBlocks);
-                    cfg.numRamps       = t->get_or("num_ramps",         cfg.numRamps);
-                    cfg.seed           = (unsigned)t->get_or("seed",    (int)cfg.seed);
-                }
-                Logger::Info("[LuaScene] WorldGen::Generate...");
-                WorldGen::Generate(*m_scene, *m_physics, cfg);
-                Logger::Info("[LuaScene] WorldGen::Generate OK");
-            });
-        });
-
-    eng.set_function("world_destroy",
-        [this]() {
-            RK_SAFE("world_destroy", WorldGen::Destroy(*m_scene, *m_physics));
-        });
-
     // ── BVH ──────────────────────────────────────────────────────────────────
-    if (m_api->engineVersion >= 7 && m_api->OptimizeBroadPhase)
+    if (m_api->OptimizeBroadPhase)
         eng.set_function("optimize_broadphase",
             [this]() {
                 RK_SAFE("optimize_broadphase", {
                     Logger::Info("[LuaScene] OptimizeBroadPhase...");
-                    m_api->OptimizeBroadPhase(*m_physics);
+                    m_api->OptimizeBroadPhase(RK_WORLD);
                     Logger::Info("[LuaScene] OptimizeBroadPhase OK");
                 });
             });
 
-    // ── Персонаж ─────────────────────────────────────────────────────────────────
+    // ── Персонаж ─────────────────────────────────────────────────────────────
     if (m_api->CreateCharacter)
         eng.set_function("create_character",
             [this](sol::optional<float> sx, sol::optional<float> sy, sol::optional<float> sz) -> bool
@@ -162,16 +131,11 @@ void LuaScenePlugin::BindAll()
                     d.capsuleHalfHeight = 0.9f;
                     d.capsuleRadius     = 0.35f;
                     d.maxSlopeAngleDeg  = 45.f;
-                    ok = m_api->CreateCharacter(*m_physics, d);
+                    ok = m_api->CreateCharacter(RK_WORLD, d);
                     Logger::Info("[LuaScene] CreateCharacter ok=" + std::to_string(ok));
                 });
                 return ok;
             });
-
-    eng.set_function("player_move",
-        [this]() {
-            RK_SAFE("player_move", PlayerMove::Run(*m_scene, *m_physics));
-        });
 
     // ── Камера ───────────────────────────────────────────────────────────────
     eng.set_function("set_third_person",
@@ -182,7 +146,7 @@ void LuaScenePlugin::BindAll()
             });
         });
 
-    // ── Низкоуровневая физика ─────────────────────────────────────────────────
+    // ── Физика: статические/динамические тела ────────────────────────────────
     if (m_api->SpawnStaticBox)
         eng.set_function("spawn_static_box",
             [this](float cx, float cy, float cz,
@@ -194,7 +158,7 @@ void LuaScenePlugin::BindAll()
                     RK_BoxBody b{};
                     b.position = {cx,cy,cz}; b.halfExtents = {hx,hy,hz};
                     b.isSensor = sensor.value_or(false);
-                    id = m_api->SpawnStaticBox(*m_physics, b);
+                    id = m_api->SpawnStaticBox(RK_WORLD, b);
                 });
                 return id;
             });
@@ -211,7 +175,7 @@ void LuaScenePlugin::BindAll()
                     b.cx=cx; b.cy=cy; b.cz=cz;
                     b.hx=hx; b.hy=hy; b.hz=hz;
                     b.rotY=ry; b.rotX=rx;
-                    id = m_api->SpawnStaticBoxRot(*m_physics, b);
+                    id = m_api->SpawnStaticBoxRot(RK_WORLD, b);
                 });
                 return id;
             });
@@ -228,7 +192,7 @@ void LuaScenePlugin::BindAll()
                     b.cx=cx; b.cy=cy; b.cz=cz;
                     b.hx=hx; b.hy=hy; b.hz=hz;
                     b.mass = mass.value_or(100.f);
-                    id = m_api->SpawnDynamicBox(*m_physics, b);
+                    id = m_api->SpawnDynamicBox(RK_WORLD, b);
                 });
                 return id;
             });
@@ -236,7 +200,7 @@ void LuaScenePlugin::BindAll()
     if (m_api->DestroyBody)
         eng.set_function("destroy_body",
             [this](uint32_t id) {
-                RK_SAFE("destroy_body", m_api->DestroyBody(*m_physics, id));
+                RK_SAFE("destroy_body", m_api->DestroyBody(RK_WORLD, id));
             });
 
     if (m_api->GetBodyTransform)
@@ -246,8 +210,51 @@ void LuaScenePlugin::BindAll()
             {
                 float px=0,py=0,pz=0,qx=0,qy=0,qz=0,qw=1;
                 RK_SAFE("get_body_transform",
-                    m_api->GetBodyTransform(*m_physics,id,px,py,pz,qx,qy,qz,qw));
+                    m_api->GetBodyTransform(RK_WORLD,id,px,py,pz,qx,qy,qz,qw));
                 return {px,py,pz,qx,qy,qz,qw};
+            });
+
+    // ── Транспорт ─────────────────────────────────────────────────────────────
+    if (m_api->SpawnVehicle)
+        eng.set_function("spawn_vehicle",
+            [this](sol::optional<sol::table> t) -> uint32_t
+            {
+                RK_VehicleDesc d{};
+                if (t) {
+                    d.spawnX = t->get_or("x", d.spawnX);
+                    d.spawnY = t->get_or("y", d.spawnY);
+                    d.spawnZ = t->get_or("z", d.spawnZ);
+                    d.mass   = t->get_or("mass", d.mass);
+                }
+                uint32_t vh = RK_INVALID_VEHICLE;
+                RK_SAFE("spawn_vehicle", vh = m_api->SpawnVehicle(RK_WORLD, d));
+                return vh;
+            });
+
+    if (m_api->SetVehicleInput)
+        eng.set_function("set_vehicle_input",
+            [this](uint32_t vh, float throttle, float brake, float steer, float handbrake) {
+                RK_SAFE("set_vehicle_input", {
+                    RK_VehicleInput inp{throttle, brake, steer, handbrake};
+                    m_api->SetVehicleInput(RK_WORLD, vh, inp);
+                });
+            });
+
+    if (m_api->GetVehicleTransform)
+        eng.set_function("get_vehicle_transform",
+            [this](uint32_t vh)
+                -> std::tuple<float,float,float,float,float,float,float,float,float,float>
+            {
+                float px=0,py=0,pz=0,qx=0,qy=0,qz=0,qw=1,vx=0,vy=0,vz=0;
+                RK_SAFE("get_vehicle_transform",
+                    m_api->GetVehicleTransform(RK_WORLD,vh,px,py,pz,qx,qy,qz,qw,vx,vy,vz));
+                return {px,py,pz,qx,qy,qz,qw,vx,vy,vz};
+            });
+
+    if (m_api->DestroyVehicle)
+        eng.set_function("destroy_vehicle",
+            [this](uint32_t vh) {
+                RK_SAFE("destroy_vehicle", m_api->DestroyVehicle(RK_WORLD, vh));
             });
 
     // ── InputState ────────────────────────────────────────────────────────────

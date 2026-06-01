@@ -26,7 +26,6 @@
 namespace RKeng
 {
     struct SceneState;
-    struct PhysicsState;
     struct EngineAPI;
 }
 
@@ -37,9 +36,9 @@ namespace RKeng
     public:
         virtual ~IScenePlugin() = default;
 
-        virtual void OnLoad  (SceneState& scene, PhysicsState& physics, const EngineAPI& api) = 0;
-        virtual void OnTick  (SceneState& scene, PhysicsState& physics, float dt) { (void)scene; (void)physics; (void)dt; }
-        virtual void OnUnload(SceneState& scene, PhysicsState& physics)           { (void)scene; (void)physics; }
+        virtual void OnLoad  (SceneState& scene, const EngineAPI& api) = 0;
+        virtual void OnTick  (SceneState& scene, float dt) {}
+        virtual void OnUnload(SceneState& scene)            {}
 
         virtual const char* GetName() const = 0;
     };
